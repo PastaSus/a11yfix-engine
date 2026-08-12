@@ -1,5 +1,10 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Repository layout
+
+- `_bmad-output/` — the spec-driven planning artifacts (product brief, PRD, UX spines, architecture spine, epic/story breakdown, sprint ledger). Read these to understand *why* the code is built the way it is.
+- `_bmad/` — the [BMad Method](https://docs.bmad-method.org/) workflow framework used to produce those artifacts. Optional to use; the application builds and runs without it.
+
 ## Getting Started
 
 First, run the development server:
