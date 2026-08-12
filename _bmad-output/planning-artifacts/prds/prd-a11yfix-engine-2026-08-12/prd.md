@@ -1,0 +1,254 @@
+---
+title: A11yFix Engine
+status: draft
+created: 2026-08-12
+updated: 2026-08-12
+---
+
+# PRD: A11yFix Engine
+
+## 0. Document Purpose
+
+This PRD is for the project owner, downstream workflow owners (UX, architecture, epics/stories), and any external contributor to the open-source repository. It defines A11yFix Engine — an automated accessibility and performance remediation platform — as a buildable contract: features with globally number-stable FRs, non-goals, measurable success, and an assumptions index. It builds directly on the approved Product Brief (`_bmad-output/planning-artifacts/briefs/brief-a11yfix-engine-2026-08-12/brief.md`) and does not duplicate it. Technical implementation choices live in the addendum, not here.
+
+## 1. Vision
+
+A11yFix Engine turns raw accessibility and performance diagnostics into outcomes. A web scan currently ends as a dense rule dump that nobody acts on — stakeholders cannot read it, developers must hand-craft every fix, and studios cannot turn it into a sales conversation. This product renders one audit two ways: a plain-English business narrative a client can act on, and reviewable, production-ready React and Tailwind code patches a developer can ship. Every generated patch is proposed, never auto-applied, keeping AI remediation safe by construction.
+
+The same engine is Nerezo Studio's lead-generation weapon — a prospect scan becomes a visual, exportable diagnostic report with direct proof of a broken user experience. Beyond that, it is an open-source, spec-driven portfolio centerpiece built from first principles. If it succeeds, remediation stops being a dump-and-forget exercise and becomes a document a business acts on and a developer ships from.
+
+## 2. Target User
+
+### 2.1 Jobs To Be Done
+
+- **Nerezo Studio:** run a prospect site check, export a visual diagnostic, and attach proof of a broken experience to outreach without manual engineering.
+- **The developer/owner (you):** produce an enterprise-grade, open-sourced portfolio artifact that demonstrates disciplined, spec-driven architecture.
+- **A solo developer or small shop:** turn any site audit into a client-facing report and actionable patches — a credibility multiplier for pitching accessibility work.
+- **A non-technical stakeholder:** understand, in business terms, what accessibility and performance failures cost — and what fixing them is worth.
+- **A developer:** receive targeted, reviewable fixes for exact violations instead of a raw rule list.
+
+### 2.2 Non-Users (v1)
+
+- Enterprise accessibility teams wanting deep CI/CD integration, team workflow, and governance — explicitly out of scope for v1.
+- Teams needing to scan behind login/authentication.
+- Mobile app (non-web) developers.
+
+### 2.3 Key User Journeys
+
+- **UJ-1. Nerezo runs a prospect check and sells the fix.** Nerezo developer Matteo, before sending outreach to a small e-commerce prospect, pastes the prospect URL into A11yFix Engine. The scan runs headless; the Analyst posits that 40% of product pages fail a WCAG AA contrast rule and estimates the share of mobile checkout attempts affected. Matteo exports the visual diagnostic report, attaches the captured broken-experience proof to the email, and sends. **Edge case:** the scan times out on a heavy page — Matteo sees a clear failure state and retries with a reduced depth setting rather than hitting an infinite spinner.
+- **UJ-2. A client reads the report.** Priya, the prospect's non-technical founder, opens the report. She sees a plain-English summary — what's broken in user terms, what it costs her business, and the fix priority — no rule IDs she must decode. She forwards it to her developer with "can we fix these?"
+- **UJ-3. A developer reviews and applies patches.** Her developer, Dan, opens the same audit in Developer view. Each violation shows the proposed React/Tailwind diff, the WCAG rule it satisfies, and a side-by-side before/after. He reviews, adjusts, and applies the patches to his codebase. **Edge case:** a proposed patch targets a component that doesn't exist in his stack — he can see why it was proposed and dismiss it with context, never blindly merged.
+
+## 3. Glossary
+
+- **Scan** — one headless run of Playwright + axe-core against a single public URL, producing a structured set of Violations and Core Web Vitals.
+- **Violation** — a single DOM-tree accessibility failure detected by axe-core (rule ID, WCAG reference, severity, affected nodes).
+- **Core Web Vitals** — the measurable performance metrics (LCP, INP, CLS) extracted from the same run.
+- **Audit Report** — the structured end-to-end output of one Scan: Violations, Core Web Vitals, Analyst business impacts, and any proposed Patches.
+- **Analyst Agent** — the AI persona that converts technical failures into plain-English business impact.
+- **Architect Agent** — the AI persona that generates production-ready React and Tailwind Patches for those exact Violations.
+- **Patch** — a proposed, reviewable code change generated by the Architect Agent; never auto-applied.
+- **Audience View** — the dashboard's toggleable presentation: **Client View** (high-level visual summary) or **Developer View** (line-by-line diffs).
+- **Diagnostic Report** — the shareable, visual export of an Audit Report used for client delivery and outreach.
+- **WCAG 2.1 AA** — the accessibility conformance standard the scan targets by default.
+
+## 4. Features
+
+*Features are grouped; FRs are globally numbered FR-1 through FR-N and reference UJs by ID.*
+
+### 4.1 Scan Orchestration
+
+**Description:** The Python service drives headless Chromium with Playwright and axe-core against a supplied public URL, waits for the page to render, and extracts Violations plus Core Web Vitals into a normalized JSON structure ready for the AI layer. Realizes UJ-1.
+
+**Functional Requirements:**
+
+#### FR-1: Scan a public URL
+A user can submit a public URL to start a Scan, which runs headless and returns the normalized Audit Report data. Realizes UJ-1.
+
+**Consequences (testable):**
+- Submitting a valid `https://` URL starts a Scan and returns a structured result with violations and vitals.
+- A malformed or `http://`-only-insecure URL is rejected with a clear validation error before any headless browser launches.
+- Scanning a non-existent domain or unreachable host returns a typed failure state the dashboard renders, not a generic crash.
+
+**Out of Scope:**
+- Scanning URLs requiring login, session state, or site credentials.
+
+#### FR-2: Wait for SPA render before extracting DOM
+The Scan waits for single-page-app content to render before running axe-core against the DOM. Realizes UJ-1.
+
+**Consequences (testable):**
+- On a test SPA with deferred-rendered content, Violations in later-rendered nodes are still captured.
+- The Scan completes within the configurable timeout or fails with a timeout status; it does not hang indefinitely.
+
+#### FR-3: Capture Core Web Vitals alongside violations
+Each Scan returns Core Web Vitals (LCP, INP, CLS) measured from the same page load, merged into the Audit Report. Realizes UJ-1, UJ-2.
+
+**Consequences (testable):**
+- The vitals block is present in every Audit Report and keyed by the same Scan identifier as the Violations.
+
+**Feature-specific NFRs:**
+- A single Scan must complete with a bounded resource profile (bounded headless instances, bounded timeout) so parallel Scans stay within a modest local machine's budget.
+
+### 4.2 Analyst Translation
+
+**Description:** The Analyst Agent consumes the normalized Scan output and produces, per high-severity Violation, a plain-English business impact statement in Glossary terms — what the failure is in user terms, who it affects, and what it plausibly costs in conversions or compliance risk. Realizes UJ-2.
+
+**Functional Requirements:**
+
+#### FR-4: Produce plain-English business impact per violation
+For each high-severity Violation, the Analyst Agent produces a business-impact explanation: the human-facing failure, affected user segment, WCAG consequence, and a reasoned conversion/compliance impact estimate. Realizes UJ-2.
+
+**Consequences (testable):**
+- Every high-severity Violation in the Audit Report carries an Analyst impact block; none is emitted with empty or placeholder text.
+- Each impact block cites the source Violation ID and its WCAG reference.
+
+#### FR-5: Rank and prioritize remediation by business impact
+The Analyst Agent orders Violations into a prioritized remediation list, highest business impact first, for both Audience Views. Realizes UJ-2, UJ-3.
+
+**Consequences (testable):**
+- The Client View's priority list order matches the Analyst ranking, stable across identical inputs.
+
+**Notes:**
+- `[NOTE FOR PM]` Impact *estimates* are explicitly estimates — the PRD should not imply causal attribution model guarantees. Open question OQ-2 tracks this.
+
+### 4.3 Architect Patch Generation
+
+**Description:** The Architect Agent generates for each prioritized Violation a proposed Patch: a production-ready, accessible React and Tailwind code change, presented as a reviewable diff with the WCAG rule it satisfies. Patches are proposed only — never auto-applied. Realizes UJ-3.
+
+**Functional Requirements:**
+
+#### FR-6: Generate proposed React/Tailwind patches per violation
+The Architect Agent produces a proposed Patch (diff + rationale) for each prioritized Violation targeting the affected component. Realizes UJ-3.
+
+**Consequences (testable):**
+- Each Patch contains a machine-readable diff and a rationale referencing the Violation ID and WCAG rule.
+- A Patch is never applied to a repository automatically by the system.
+
+#### FR-7: Present patches as reviewable diffs
+Developer View renders each Patch as a line-by-line diff with before/after and a visible "proposed, not applied" status. Realizes UJ-3.
+
+**Consequences (testable):**
+- A user can open a Patch, see the exact lines, and accept, edit, or dismiss it — with no write to any codebase.
+
+**Out of Scope:**
+- Support for frameworks/languages other than React + Tailwind `[ASSUMPTION: A5]`.
+
+### 4.4 Diagnostic Dashboard
+
+**Description:** The Next.js App Router dashboard renders one Audit Report across two Audience Views, toggleable by the user. Client View is a visual, business-first summary; Developer View shows diffs and technical detail. Realizes UJ-2, UJ-3.
+
+**Functional Requirements:**
+
+#### FR-8: Toggle between Client and Developer views
+A single control switches the dashboard between Client View and Developer View over the same Audit Report, without re-running the Scan. Realizes UJ-2, UJ-3.
+
+**Consequences (testable):**
+- Toggling changes the rendering only, not the underlying report; no new Scan is triggered.
+- Neither view ever loses the ability to reach the other; the toggle is present on every report page.
+
+#### FR-9: Render the Client View visual summary
+Client View renders the Analyst business impacts, remediation priority, and a high-level health summary in business terms, with no raw rule IDs required for comprehension. Realizes UJ-2.
+
+**Consequences (testable):**
+- A reader with no axe-core knowledge can state the top three problems and their business impact from the Client View alone.
+
+#### FR-10: Render the Developer View with diffs and details
+Developer View renders Violations with rule IDs, WCAG references, affected nodes, Core Web Vitals, and the reviewable Patches. Realizes UJ-3.
+
+**Consequences (testable):**
+- Every Violation shown in Client View has a technical counterpart reachable from Developer View.
+
+**Feature-specific NFRs:**
+- The dashboard must be responsive and usable by a non-technical stakeholder on a laptop without instruction.
+
+### 4.5 Report Export and Outreach
+
+**Description:** Diagnostic Reports are exportable as a visual, shareable artifact from the Audit Report, packaging Analyst impacts and broken-experience proof for client delivery and Nerezo outreach. Realizes UJ-1.
+
+**Functional Requirements:**
+
+#### FR-11: Export the Audit Report as a Diagnostic Report
+A user can export a Scan's Audit Report as a visual, shareable Diagnostic Report file. Realizes UJ-1, UJ-2.
+
+**Consequences (testable):**
+- Export produces a file that renders standalone (no local dev server required) and includes the Client View summary, priority list, and Analyst impacts.
+- Export succeeds from an existing Audit Report without re-scanning.
+
+#### FR-12: Surface captured broken-experience proof
+The exported Diagnostic Report includes visual proof of at least one high-priority broken experience (e.g., captured screenshot/evidence from the Scan) for direct attachment to outreach. Realizes UJ-1.
+
+**Consequences (testable):**
+- Any Diagnostic Report for a Scan with at least one high-severity Violation includes a proof artifact; none is empty.
+
+## Cross-Cutting NFRs
+
+- **Performance:** a Scan completes within the configured timeout; the dashboard loads an existing Audit Report without blocking on any AI call.
+- **Reliability:** a failed Scan is retryable and returns a typed failure; the AI translation layer degrades gracefully if a free-tier provider is rate-limited.
+- **Cost:** AI layer uses free-tier providers only `[ASSUMPTION: A4]`; Scan parallelization is bounded so a local machine handles full runs without paid infrastructure.
+- **Observability:** each Scan records pipeline stage timings (scan → translate → render) so the pipeline's cost/latency is visible.
+
+## Constraints and Guardrails
+
+- **Safety:** Patches are proposed, never auto-applied (FR-6/FR-7) — an explicit product invariant, not an implementation detail.
+- **Privacy:** The system scans public pages only; no user credentials or session data are ever stored. Credentialed scanning is a non-goal.
+- **Cost:** Free-tier-first across the stack; the product must run the full pipeline on a dev machine at zero recurring cost.
+
+## 5. Non-Goals (Explicit)
+
+- Auto-applying generated Patches to any repository (any plan that enables this is a redirect to Non-Goal).
+- Scanning pages behind authentication or capturing credentials.
+- Multi-tenant SaaS: billing, team accounts, org management, hosted queue provisioning.
+- Paid AI model support or enterprise rate-limit/queue management in v1.
+- Deep CI/CD platform integrations (GitHub Actions, etc.) as first-class — deferred to the vision.
+- Reactive app rendering beyond React/Tailwind targets `[ASSUMPTION: A5]`.
+
+## 6. MVP Scope
+
+### 6.1 In Scope
+
+- Headless Scan of public URLs: WCAG 2.1 A/AA Violations + Core Web Vitals.
+- Analyst and Architect personas over Scan output (proposed Patches only).
+- Toggleable dual Audience View dashboard.
+- Diagnostic Report export with broken-experience proof for outreach.
+- Local-first free pipeline; open-source repository.
+
+### 6.2 Out of Scope for MVP
+
+- Auto-apply / CI integration — v2+; load-bearing for enterprise story but not for the OSS launch.
+- Credentialed scanning — v2+; technically significant (FR-2 interacts).
+- Multi-tenant SaaS and billing — later hosted tier, per Vision in the brief.
+- Team accounts and shared audit libraries — requires multi-tenant, deferred.
+
+## 7. Success Metrics
+
+**Primary**
+- **SM-1**: Median scan-to-Audit-Report compute time, measured end-to-end from a local run — target < 3 minutes for a typical marketing page. Validates FR-1, FR-2, FR-4.
+- **SM-2**: Share of high-severity Violations receiving a proposed Patch — target ≥ 80% of Analyst-prioritized Violations producing an Architect Patch. Validates FR-6.
+
+**Secondary**
+- **SM-3**: OSS adoption signal — public repository traction (stars, forks, clone/download counts) with shipping cadence. Validates the vision as an open-source artifact.
+- **SM-4**: Report export + outreach loop usability — a Diagnostic Report producible from a fresh Scan in ≤ 2 user actions. Validates FR-11, FR-12.
+- **SM-5**: Patch safety — 0 cases where a user reports an applied Patch worsened the affected accessibility result. Validates FR-6, FR-7.
+
+**Counter-metrics (do not optimize)**
+- **SM-C1**: Patch auto-apply rate — must stay at zero. Auto-apply is the exact failure mode the propose/review invariants exist to prevent; optimizing toward it destroys trust.
+
+## 8. Open Questions
+
+1. **OQ-1.** Which free-tier AI provider(s) cover both personas reliably? (DeepSeek, Gemini free tier, Groq, local Ollama.) Decision needed before architecture.
+2. **OQ-2.** How should Analyst impact estimates be framed to avoid overclaiming conversion causality in client-facing reports?
+3. **OQ-3.** What does "broken-experience proof" capture for a fast-ly loaded page in File-export form — full-page screenshot, Cropped? Needs UX validation.
+4. **OQ-4.** Default timeout and depth behavior for heavy pages — configurable per-Scan or global MVP default?
+5. **OQ-5.** Which WCAG rule set exactly seeds the axe-core defaults for v1 (WCAG 2.1 A/AA full set vs filtered high-value rules)?
+
+## 9. Assumptions Index
+
+- A1 — The approved Product Brief reflects the true product intent; no re-scoping needed for the PRD.
+- A2 — The AI translation layer can ship on free-tier providers; no paid AI budget in v1.
+- A3 — Public, unauthenticated pages are representative of the v1 scan target.
+- A4 — A single headless Scan completes within a bounded local resource budget (bounded instances, bounded timeout).
+- A5 — Patch generation targets React + Tailwind only in v1.
+
+## Addendum (Points Beyond PRD)
+
+*Writes happen during conversation; see companion file if present.*
