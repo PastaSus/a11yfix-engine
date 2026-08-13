@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://a11yfix.local/contracts/scan-result.schema.json",
+  "title": "ScanResult",
+  "description": "Canonical ScanResult envelope produced by the Python scanner (harvest stage). Raw violations + vitals, validated on every scan output. schemaVersion is mandatory.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "scanId",
+    "url",
+    "violations",
+    "vitals",
+    "timestamp"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "scanId": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID identifying this scan. Re-running a scan produces a new scanId; reports are immutable."
+    },
+    "url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/violation"
+      }
+    },
+    "vitals": {
+      "$ref": "#/definitions/vitals"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC scan completion time."
+    }
+  },
+  "definitions": {
+    "violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "impact",
+        "description",
+        "helpUrl",
+        "nodes"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "impact": {
+          "type": "string",
+          "enum": ["critical", "serious", "moderate", "minor"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "helpUrl": {
+          "type": ["string", "null"]
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/node"
+          }
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeId",
+        "coordinates"
+      ],
+      "properties": {
+        "nodeId": {
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/definitions/coordinates"
+        }
+      }
+    },
+    "coordinates": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" }
+      }
+    },
+    "vitals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lcp", "inp", "cls"],
+      "properties": {
+        "lcp": {
+          "type": ["number", "null"],
+          "description": "Largest Contentful Paint in ms. Present but null for 1.1; filled by story 1.3."
+        },
+        "inp": {
+          "type": ["number", "null"],
+          "description": "Interaction to Next Paint in ms. Present but null for 1.1; filled by story 1.3."
+        },
+        "cls": {
+          "type": ["number", "null"],
+          "description": "Cumulative Layout Shift. Present but null for 1.1; filled by story 1.3."
+        }
+      }
+    }
+  }
+}

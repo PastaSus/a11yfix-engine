@@ -1,3 +1,6 @@
+packages:
+  - "apps/*"
+  - "contracts"
 allowBuilds:
   sharp: false
   unrs-resolver: false
