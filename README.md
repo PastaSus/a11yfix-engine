@@ -1,41 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# A11yFix Engine
+
+Automated accessibility and performance remediation platform: scan a public URL and get structured accessibility violations + Core Web Vitals, translated into business impact and reviewable React/Tailwind patches.
 
 ## Repository layout
 
+- `apps/web/` — Next.js 16 (App Router) dashboard. The sole orchestrator: it calls the scanner, runs the AI personas, and serves the dual-audience dashboard.
+- `services/scanner/` — stateless Python FastAPI harvest service (`POST /scan`): Playwright + axe-core, validates URLs, returns a schema-validated ScanResult envelope with typed `{ code, message, stage }` errors.
+- `contracts/` — single source of truth for the interchange contract: `scan-result.schema.json` and `audit-report.schema.json` (both carry a mandatory `schemaVersion`).
 - `_bmad-output/` — the spec-driven planning artifacts (product brief, PRD, UX spines, architecture spine, epic/story breakdown, sprint ledger). Read these to understand *why* the code is built the way it is.
 - `_bmad/` — the [BMad Method](https://docs.bmad-method.org/) workflow framework used to produce those artifacts. Optional to use; the application builds and runs without it.
 
+## Prerequisites
+
+- [pnpm](https://pnpm.io/) 11.19+
+- [uv](https://docs.astral.sh/uv/) (manages the Python 3.12+ environment)
+
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install JS workspace deps and the Python environment
+pnpm install
+uv sync
+
+# Install the Chromium browser Playwright drives
+uv run playwright install chromium
+
+# Start the scanner on :8000
+uv run uvicorn services.scanner.app.main:app --port 8000
+
+# Start the dashboard on :3000 (in another terminal)
 pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The dashboard's `/api/scan` route proxies `POST /scan` to the scanner. Set `SCANNER_URL` (default `http://127.0.0.1:8000`) to point elsewhere.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tests
+
+```bash
+# Scanner suite (validation, envelope schema conformance, live scan, error paths)
+uv run python -m pytest services/scanner/tests/ -v
+```
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs) — learn about Next.js features and API.
+- [BMad Method](https://docs.bmad-method.org/) — the spec-driven workflow that produced this repository.

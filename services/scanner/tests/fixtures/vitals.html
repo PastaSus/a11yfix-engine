@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Vitals fixture</title>
+  <style>
+    html, body { margin: 0; padding: 0; }
+    main { font-family: Arial, sans-serif; }
+    #hero {
+      height: 320px;
+      background: linear-gradient(#e8f0fe, #ffffff);
+      display: flex;
+      align-items: center;
+    }
+    #hero h1 {
+      font-size: 56px;
+      line-height: 1.2;
+      margin: 0 24px;
+    }
+    #banner-anchor { height: 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="banner-anchor"></div>
+    <div id="hero"><h1>Vitals fixture — a large contentful element</h1></div>
+    <p>Follow-on body text that reads like a real landing page and gives the
+       hero something to shift when the deferred banner is inserted above it.</p>
+  </main>
+  <script>
+    // Insert a banner ~800ms after load with no user input, so the
+    // layout-shift observer records a nonzero CLS from the hero being pushed down.
+    setTimeout(function () {
+      var banner = document.createElement("div");
+      banner.style.height = "120px";
+      banner.style.background = "#f6d365";
+      banner.textContent = "Deferred banner (triggers a layout shift)";
+      var hero = document.getElementById("hero");
+      hero.parentNode.insertBefore(banner, hero);
+    }, 800);
+    // Keep a request in flight (~1.2s on /slow) so Playwright's networkidle
+    // cannot fire before the 800ms shift has happened; vitals are read after it.
+    fetch("slow").then(function () {
+      document.title = "settled";
+    });
+  </script>
+</body>
+</html>

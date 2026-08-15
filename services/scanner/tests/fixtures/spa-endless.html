@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Endless SPA fixture</title>
+</head>
+<body>
+  <main id="app">churn</main>
+  <script>
+    // Mutate the DOM on an interval shorter than the probe cadence so the
+    // innerHTML-length fingerprint strictly increases and can never read as
+    // "3 consecutive equal samples" (stable). The fetch to /hold keeps a
+    // connection in flight forever so networkidle never fires and the
+    // DOM-stability fallback / timeout path is genuinely exercised.
+    var app = document.getElementById("app");
+    var n = 0;
+    setInterval(function () {
+      n += 1;
+      app.textContent = "churn " + "x".repeat(n);
+    }, 50);
+    fetch("hold");
+  </script>
+</body>
+</html>

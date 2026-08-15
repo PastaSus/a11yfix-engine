@@ -1,0 +1,11 @@
+{
+  "name": "@a11yfix/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "main": "scan-result.schema.json",
+  "exports": {
+    "./scan-result.schema.json": "./scan-result.schema.json",
+    "./audit-report.schema.json": "./audit-report.schema.json",
+    ".": "./scan-result.schema.json"
+  }
+}

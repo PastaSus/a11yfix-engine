@@ -1,0 +1,149 @@
+"""Endpoint tests for POST /scan. Browser-gated happy path plus pure error paths."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+
+from services.scanner.app.errors import HarvestError
+from services.scanner.app.main import app, validate_envelope
+
+client = TestClient(app)
+
+
+def _chromium_available() -> bool:
+    """True only when the Playwright Chromium binary is actually installed.
+
+    The playwright *package* may be present while the browser executable is
+    missing (a bare `pip install playwright`); the live integration tests must
+    skip in that state rather than fail for environmental reasons.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return False
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            browser.close()
+        return True
+    except Exception:
+        return False
+
+
+def test_rejects_insecure_url_without_browser() -> None:
+    res = client.post("/scan", json={"url": "http://example.com"})
+    assert res.status_code == 400
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "insecure_url"
+    assert body["stage"] == "validate"
+
+
+def test_rejects_malformed_url_without_browser() -> None:
+    res = client.post("/scan", json={"url": "not-a-url"})
+    assert res.status_code == 400
+    body = res.json()
+    assert body["code"] == "invalid_url"
+    assert body["stage"] == "validate"
+
+
+def test_rejects_empty_url() -> None:
+    res = client.post("/scan", json={"url": ""})
+    assert res.status_code == 400
+    assert res.json()["stage"] == "validate"
+
+
+def test_rejects_missing_body() -> None:
+    res = client.post("/scan", json={})
+    assert res.status_code == 422
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "invalid_request"
+    assert body["stage"] == "validate"
+
+
+def test_rejects_extra_field() -> None:
+    res = client.post("/scan", json={"url": "https://example.com", "surprise": 1})
+    assert res.status_code == 422
+    assert res.json()["code"] == "invalid_request"
+
+
+def test_busy_returns_http_503_when_slots_exhausted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Saturation across the HTTP seam is a typed HTTP 503 `busy`, not a 502."""
+    monkeypatch.setattr("services.scanner.app.harvest.SCAN_SLOT_TIMEOUT_MS", 50)
+    full: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", full)
+    full._value = 0  # noqa: SLF001  # simulate an already-fully-acquired semaphore
+
+    res = client.post("/scan", json={"url": "https://example.com"})
+    assert res.status_code == 503
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "busy"
+    assert body["stage"] == "harvest"
+
+
+@pytest.mark.skipif(not _chromium_available(), reason="chromium binary not installed")
+def test_happy_path_live_scan() -> None:
+    """End-to-end: scan a live public page and confirm a validated envelope."""
+    res = client.post("/scan", json={"url": "https://example.com"})
+    assert res.status_code == 200, res.text
+    body: dict[str, Any] = res.json()
+    assert body["schemaVersion"] == "1.0.0"
+    assert isinstance(body["scanId"], str) and len(body["scanId"]) == 26
+    assert body["url"] == "https://example.com"
+    assert isinstance(body["violations"], list)
+    assert isinstance(body["vitals"], dict)
+    assert set(body["vitals"]) == {"lcp", "inp", "cls"}
+
+
+@pytest.mark.skipif(not _chromium_available(), reason="chromium binary not installed")
+def test_unreachable_host_returns_typed_failure() -> None:
+    """A non-resolvable host must return a typed 502, never an unhandled exception."""
+    res = client.post("/scan", json={"url": "https://nonexistent-domain-xyz123.com"})
+    assert res.status_code == 502
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "unreachable"
+    assert body["stage"] == "harvest"
+
+
+def test_validate_envelope_rejects_non_conformant_envelope() -> None:
+    """The schema gate must reject a tampered envelope, never silently pass it."""
+    bad = {
+        "schemaVersion": "1.0.0",
+        "scanId": "not-a-ulid",
+        "url": "https://example.com",
+        "violations": [{"id": "x", "impact": "banana", "description": "d", "helpUrl": None, "nodes": []}],
+        "vitals": {"lcp": None, "inp": None, "cls": None},
+        "timestamp": "2026-08-15T00:00:00Z",
+    }
+    with pytest.raises(HarvestError) as exc:
+        validate_envelope(bad)
+    assert exc.value.code == "schema_error"
+
+
+def test_validate_envelope_accepts_conformant_envelope() -> None:
+    good = {
+        "schemaVersion": "1.0.0",
+        "scanId": "01J00000000000000000000000",
+        "url": "https://example.com",
+        "violations": [],
+        "vitals": {"lcp": None, "inp": None, "cls": None},
+        "timestamp": "2026-08-15T00:00:00Z",
+    }
+    validate_envelope(good)
+
+
+def test_rejects_non_string_url_body() -> None:
+    """A non-string `url` must map to the typed 422 invalid_request handler."""
+    res = client.post("/scan", json={"url": 123})
+    assert res.status_code == 422
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "invalid_request"
+    assert body["stage"] == "validate"
