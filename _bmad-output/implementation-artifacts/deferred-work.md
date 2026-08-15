@@ -23,3 +23,19 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-capture-a-structured-scan-of-a-public-url.md`
   summary: Vendored `axe.min.js` (axe v4.11.4) ships with no provenance or re-vendor record, and `ruff` is configured in pyproject but not in the dev dependency group.
   evidence: Blind-hunter finding. Provenance belongs in a scanner README; pinning ruff (and adding CI) is covered by the deferred CI item above.
+
+## Deferred from: code review of spec-1-1 (2026-08-15)
+
+- No concurrency bound on headless instances — every `/scan` launches its own Chromium; bounded-instance budget belongs to story 1.3 (NFR-1).
+- Cancellation via HTTP disconnect unimplemented; `asyncio.wait_for` cancels `run_scan` mid-`finally: await browser.close()` risking a leaked browser process.
+- Zero observability — no scanId/duration/stage logging; pipeline stage timings (NFR-5, ADR-7) are epic-level.
+- networkidle wait timeout swallowed with `pass` — SPA-render awareness ("axe runs only after render") is explicit story 1.2 scope.
+- ScanResult/AuditReport duplicate shared definitions and AuditReport already drops `url`/`timestamp` from `required` — schema duplication tracked above.
+- Chromium-gated live tests silently skip without the browser binary and depend on `https://example.com` (network flake) — CI enforcement is deferred post-MVP.
+- No automated coverage for the web→scanner proxy seam (route.ts) — pinned when story 1.4 builds the submission UI.
+- Private/loopback/link-local hosts scannable — needs a product decision before SSRF-style guard with story 1.4.
+- Severity vocabulary drift — axe emits `critical/serious/moderate/minor`; the epic fixes `critical/moderate/minor`; render mapping belongs to Epic 3.
+- Vendored `axe.min.js` ships with no provenance record; ruff configured but not in the dev dependency group.
+- scanner→contracts coupling via hardcoded relative path, not a declared dependency.
+- route.ts error codes are hardcoded strings not validated against the shared contract; `invalid_url/400` (route) vs `invalid_request/422` (scanner) inconsistent for the same failure class.
+- `conversion_impact_estimate` typed as `string` can't be compared/summed — forces Epic 3 web tier to parse free text.

@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-08-13'
 status: 'done'
 baseline_commit: '2162cdab6a109cd1bc14fc28aa2a3b3da99f86c8'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context: []
 ---
 
@@ -176,3 +176,37 @@ context: []
 
 - uv-managed Python env, pytest config, and toolchain pins for the scanner.
   [`pyproject.toml:1`](../../pyproject.toml#L1)
+
+### Review Findings
+
+**decision-needed**
+
+**patch**
+
+- [x] [Review][Patch] extract_violations builds garbage nodeId / crashes on real axe target shape — `target` is an array-of-arrays, so `" > ".join(target)` emits a Python list repr (or a TypeError when the first element is itself a list), never a usable selector [services/scanner/app/harvest.py:49]
+- [x] [Review][Patch] axe.run() result unguarded — a null/non-dict return (CSP-blocked axe or inject failure) raises an AttributeError, an untyped 500, not a typed HarvestError [services/scanner/app/harvest.py:107]
+- [x] [Review][Patch] No catch-all exception handler — any unhandled exception leaks FastAPI's default HTML 500, breaking the ADR-8 `{ code, message, stage }` contract [services/scanner/app/errors.py:48]
+- [x] [Review][Patch] validate_url accepts empty-hostname URLs (`https://:443` passes) and whitespace/invalid hostname chars — a browser launches for a malformed host instead of a typed 400 [services/scanner/app/validation.py:38]
+- [x] [Review][Patch] validate_envelope enforcement branch untested — no test routes a tampered envelope through the gate to assert a 502 `schema_error` [services/scanner/app/main.py:47]
+- [x] [Review][Patch] Draft7Validator built without format_checker — the `format: date-time` on `timestamp` is silently never validated [services/scanner/app/main.py:43]
+- [x] [Review][Patch] No test for a non-string `url` body (`{"url": 123}`) exercising the 422 `invalid_request` handler [services/scanner/tests/test_main.py:58]
+- [x] [Review][Patch] scanId schema pattern never asserted against a real `ulid.new()` output — only the hardcoded all-zero ULID [services/scanner/tests/test_harvest.py:94]
+- [x] [Review][Patch] .gitignore ignores `playwright-report/` but not `test-results/`, the directory pytest-playwright writes to [.gitignore]
+- [x] [Review][Patch] route.ts reads `res.text()` outside any try — a scanner body read that fails or stalls is an unhandled exception, not a typed 502 [apps/web/app/api/scan/route.ts:37]
+- [x] [Review][Patch] route.ts doesn't strip a trailing slash from SCANNER_URL — `SCANNER_URL=https://host/` yields `//scan` → 404 [apps/web/app/api/scan/route.ts:1]
+
+**defer**
+
+- [x] [Review][Defer] No concurrency bound on headless instances — every `/scan` launches its own Chromium; bounded-instance budget belongs to story 1.3 (NFR-1) [services/scanner/app/main.py:67] — deferred, pre-existing
+- [x] [Review][Defer] Cancellation via HTTP disconnect unimplemented; `asyncio.wait_for` cancels `run_scan` mid-`finally: await browser.close()` risking a leaked browser process [services/scanner/app/main.py:72] — deferred, pre-existing
+- [x] [Review][Defer] Zero observability — no scanId/duration/stage logging; pipeline stage timings (NFR-5, ADR-7) are epic-level [services/scanner/app/harvest.py:76] — deferred, pre-existing
+- [x] [Review][Defer] networkidle wait timeout swallowed with `pass` — SPA-render awareness ("axe runs only after render") is explicit story 1.2 scope [services/scanner/app/harvest.py:100] — deferred, pre-existing
+- [x] [Review][Defer] ScanResult/AuditReport duplicate shared definitions and AuditReport already drops `url`/`timestamp` from `required` — schema duplication is already tracked in the deferred-work ledger [contracts/audit-report.schema.json:8] — deferred, pre-existing
+- [x] [Review][Defer] Chromium-gated live tests silently skip without the browser binary and depend on `https://example.com` (network flake) — CI enforcement is deferred post-MVP [services/scanner/tests/test_main.py:15] — deferred, pre-existing
+- [x] [Review][Defer] No automated coverage for the web→scanner proxy seam (route.ts) — pinned when story 1.4 builds the submission UI [apps/web/app/api/scan/route.ts:4] — deferred, pre-existing
+- [x] [Review][Defer] Private/loopback/link-local hosts scannable — needs a product decision before SSRF-style guard with story 1.4 [services/scanner/app/validation.py:38] — deferred, pre-existing
+- [x] [Review][Defer] Severity vocabulary drift — axe emits `critical/serious/moderate/minor`; the epic fixes `critical/moderate/minor`; render mapping belongs to Epic 3 [contracts/scan-result.schema.json:61] — deferred, pre-existing
+- [x] [Review][Defer] Vendored `axe.min.js` ships with no provenance record; ruff configured but not in the dev dependency group [services/scanner/app/axe.min.js:1] — deferred, pre-existing
+- [x] [Review][Defer] scanner→contracts coupling via hardcoded relative path, not a declared dependency — acknowledged in deferred-work ledger [services/scanner/app/main.py:25] — deferred, pre-existing
+- [x] [Review][Defer] route.ts error codes are hardcoded strings not validated against the shared contract; `invalid_url/400` (route) vs `invalid_request/422` (scanner) inconsistent for the same failure class [apps/web/app/api/scan/route.ts:10] — deferred, pre-existing
+- [x] [Review][Defer] `conversion_impact_estimate` typed as `string` can't be compared/summed — forces Epic 3 web tier to parse free text [contracts/audit-report.schema.json:149] — deferred, pre-existing
