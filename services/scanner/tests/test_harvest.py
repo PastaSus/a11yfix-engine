@@ -13,7 +13,14 @@ import pytest
 from jsonschema import Draft7Validator
 
 from services.scanner.app.errors import HarvestError
-from services.scanner.app.harvest import build_scan_result, extract_violations, load_axe_source, run_scan_with_timeout
+from services.scanner.app.harvest import (
+    DOM_STABILITY_SAMPLES_REQUIRED,
+    build_scan_result,
+    dom_has_stabilized,
+    extract_violations,
+    load_axe_source,
+    run_scan_with_timeout,
+)
 
 CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "contracts"
 SCAN_RESULT_SCHEMA_PATH = CONTRACTS_DIR / "scan-result.schema.json"
@@ -110,6 +117,22 @@ def test_real_ulid_matches_schema_pattern() -> None:
     errors = sorted(validator.iter_errors(envelope), key=lambda e: list(e.path))
     assert not errors, [e.message for e in errors]
     assert re.fullmatch(r"^[0-9A-HJKMNP-TV-Z]{26}$", scan_id)
+
+
+def test_dom_has_stabilized_requires_consecutive_equal_samples() -> None:
+    """The SPA-ready stability decision needs K equal trailing readings."""
+    assert not dom_has_stabilized([])
+    assert not dom_has_stabilized([1])
+    assert not dom_has_stabilized([1, 2])
+    assert not dom_has_stabilized([1, 2, 1])
+    assert dom_has_stabilized([5, 5, 5])
+    assert dom_has_stabilized([1, 5, 5, 5])
+    assert not dom_has_stabilized([5, 5, 6, 5])
+    assert dom_has_stabilized([7, 7, 7, 7, 7])
+
+
+def test_default_stability_requirement_is_three_samples() -> None:
+    assert DOM_STABILITY_SAMPLES_REQUIRED == 3
 
 
 async def test_wall_clock_timeout_returns_typed_timeout(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,14 +1,16 @@
 """Playwright + axe-core harvest stage.
 
-Navigates to a URL with a headless browser, waits for the page to load, injects
-axe-core, runs the analysis, and returns a schema-validated ScanResult envelope
-(violations + vitals). Never blocks indefinitely: navigation and network-idle
-waits are timeout-bound. Any navigation failure becomes a typed HarvestError.
+Navigates to a URL with a headless browser, waits for the page to be SPA-ready
+(network idle, else DOM-stable), injects axe-core, runs the analysis, and
+returns a schema-validated ScanResult envelope (violations + vitals). Never
+blocks indefinitely: navigation, network-idle and DOM-stability waits are all
+timeout-bound. Any navigation failure becomes a typed HarvestError.
 """
 
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import datetime, timezone
 from importlib import resources
 from typing import Any
@@ -22,6 +24,9 @@ from services.scanner.app.errors import HarvestError
 SCHEMA_VERSION = "1.0.0"
 NAVIGATION_TIMEOUT_MS = 30_000
 NETWORKIDLE_TIMEOUT_MS = 30_000
+DOM_STABILITY_BUDGET_MS = 15_000
+DOM_STABILITY_SAMPLE_MS = 500
+DOM_STABILITY_SAMPLES_REQUIRED = 3
 
 
 def load_axe_source() -> str:
@@ -77,6 +82,56 @@ def build_scan_result(url: str, scan_id: str, violations: list[dict[str, Any]]) 
     }
 
 
+def dom_has_stabilized(
+    samples: list[int], required_equal: int = DOM_STABILITY_SAMPLES_REQUIRED
+) -> bool:
+    """True when the trailing DOM fingerprint samples are identical.
+
+    Pure decision helper for the SPA-ready wait: `samples` is the history of
+    fingerprint readings and the decision is made on the last `required_equal`
+    entries, so it can be unit-tested without launching a browser. Returns False
+    until enough samples exist.
+    """
+    if len(samples) < required_equal:
+        return False
+    return len(set(samples[-required_equal:])) == 1
+
+
+async def wait_spa_ready(page: Any, url: str) -> None:
+    """Wait until the page is SPA-ready: network idle, else DOM-stable.
+
+    Tries `networkidle` first. Pages that never go idle (long-polling /
+    websockets) fall back to polling a cheap DOM fingerprint (body's innerHTML
+    length) until the content stops churning. Both phases are bounded: the
+    network-idle wait by NETWORKIDLE_TIMEOUT_MS, the stability budget by
+    DOM_STABILITY_BUDGET_MS. Exhausting the budget raises a typed
+    HarvestError(`{ code: "timeout", stage: "harvest" }`) so axe-core never
+    runs against an unrendered shell and the scan never hangs.
+    """
+    try:
+        await page.wait_for_load_state("networkidle", timeout=NETWORKIDLE_TIMEOUT_MS)
+        return
+    except PlaywrightTimeoutError:
+        pass
+
+    sample_seconds = DOM_STABILITY_SAMPLE_MS / 1000
+    start = time.monotonic()
+    samples: list[int] = []
+    while time.monotonic() - start < DOM_STABILITY_BUDGET_MS / 1000:
+        sample: int = await page.evaluate(
+            "() => document.body ? document.body.innerHTML.length : 0"
+        )
+        samples.append(sample)
+        if dom_has_stabilized(samples):
+            return
+        await asyncio.sleep(sample_seconds)
+    raise HarvestError(
+        f"The page at {url} kept changing its DOM and never stabilized within "
+        f"{DOM_STABILITY_BUDGET_MS // 1000}s.",
+        code="timeout",
+    )
+
+
 async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
     """Harvest a public URL: navigate, wait, inject axe-core, run analysis.
 
@@ -101,10 +156,7 @@ async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
                         f"We couldn't reach {url}. It may be down, or the network is slow. ({exc.__class__.__name__})"
                     ) from exc
 
-                try:
-                    await page.wait_for_load_state("networkidle", timeout=NETWORKIDLE_TIMEOUT_MS)
-                except PlaywrightTimeoutError:
-                    pass
+                await wait_spa_ready(page, url)
 
                 try:
                     await page.add_script_tag(content=load_axe_source())

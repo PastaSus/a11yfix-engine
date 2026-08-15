@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Deferred SPA fixture</title>
+</head>
+<body>
+  <main id="app">
+    <h1>Deferred SPA fixture</h1>
+    <p>Shell content renders first. The violating node is inserted ~300ms later.</p>
+  </main>
+  <script>
+    // Render deferred content before the network goes idle so the SPA-ready
+    // wait observes the fully rendered DOM. The fetch to /slow keeps a
+    // connection in flight so Playwright's networkidle cannot fire early.
+    setTimeout(function () {
+      var img = document.createElement("img");
+      img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+      document.getElementById("app").appendChild(img);
+    }, 300);
+    fetch("slow").then(function () {
+      document.title = "settled";
+    });
+  </script>
+</body>
+</html>
