@@ -1,7 +1,8 @@
 // @vitest-environment node
 
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { POST } from "@/app/api/scan/route";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+let route: typeof import("@/app/api/scan/route");
 
 const ENVELOPE = {
   schemaVersion: "1.0.0",
@@ -14,7 +15,14 @@ const ENVELOPE = {
 
 const SCANNER_URL = "http://127.0.0.1:8000";
 
+beforeEach(async () => {
+  vi.resetModules();
+  vi.stubEnv("SCANNER_URL", SCANNER_URL);
+  route = await import("@/app/api/scan/route");
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
@@ -26,7 +34,7 @@ function scannerResponse(data: unknown, status: number) {
 }
 
 function callPost(requestBody: string) {
-  return POST(
+  return route.POST(
     new Request("http://localhost/api/scan", {
       method: "POST",
       headers: { "content-type": "application/json" },

@@ -56,6 +56,24 @@ describe("submitScan", () => {
     );
   });
 
+  it("returns invalid_response when a 200 envelope is missing vitals fields", async () => {
+    const body = { ...RESULT, vitals: {} };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(fetchLike({ ok: true, status: 200, body })));
+    const result = await submitScan("https://example.com");
+    expect({ ok: result.ok, ...(result.ok ? {} : { code: result.code, status: result.status }) }).toEqual(
+      { ok: false, code: "invalid_response", status: 200 },
+    );
+  });
+
+  it("returns invalid_response when a vitals field is not a number or null", async () => {
+    const body = { ...RESULT, vitals: { lcp: "fast", inp: null, cls: 0.1 } };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(fetchLike({ ok: true, status: 200, body })));
+    const result = await submitScan("https://example.com");
+    expect({ ok: result.ok, ...(result.ok ? {} : { code: result.code, status: result.status }) }).toEqual(
+      { ok: false, code: "invalid_response", status: 200 },
+    );
+  });
+
   it("propagates an error envelope from the route", async () => {
     const body = { code: "unreachable", message: "host down", stage: "harvest" };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(fetchLike({ ok: false, status: 502, body })));

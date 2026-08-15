@@ -85,7 +85,8 @@ export function ScanForm() {
         setState({ stage: "paused" });
         return;
       }
-      setState({ stage: "failed", hint: failureHint(result.code) });
+      const hint = result.message.trim() !== "" ? result.message : failureHint(result.code);
+      setState({ stage: "failed", hint });
     } finally {
       inflight.current = false;
     }
@@ -157,6 +158,8 @@ export function ScanForm() {
             ref={inputRef}
             id="scan-url"
             type="url"
+            required
+            aria-required="true"
             value={url}
             onChange={(event) => {
               setUrl(event.target.value);
@@ -222,8 +225,7 @@ export function ScanForm() {
 
       {state.stage === "failed" && (
         <div
-          role="status"
-          aria-live="polite"
+          role="alert"
           className="mt-6 rounded-md border border-error-container bg-error-container p-4"
         >
           <p className="font-medium text-on-error-container">{state.hint}</p>

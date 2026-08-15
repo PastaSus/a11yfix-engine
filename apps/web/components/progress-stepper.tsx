@@ -42,6 +42,7 @@ export function ProgressStepper({ current }: { current: StageName }) {
                 {isComplete ? "✓" : index + 1}
               </span>
               {stage.label}
+              {isComplete && <span className="sr-only"> completed</span>}
             </span>
           </li>
         );

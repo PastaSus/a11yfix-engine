@@ -36,16 +36,24 @@ export type SubmitScanResult =
   | { ok: true; data: ScanResult }
   | { ok: false; code: string; message: string; status: number };
 
+function isNullableNumber(value: unknown): value is number | null {
+  return typeof value === "number" || value === null;
+}
+
 function isScanResult(data: unknown): data is ScanResult {
   if (typeof data !== "object" || data === null) return false;
   const candidate = data as Record<string, unknown>;
+  const vitals = candidate.vitals as Record<string, unknown> | null | undefined;
   return (
     typeof candidate.schemaVersion === "string" &&
     typeof candidate.scanId === "string" &&
     typeof candidate.url === "string" &&
     Array.isArray(candidate.violations) &&
-    typeof candidate.vitals === "object" &&
-    candidate.vitals !== null &&
+    typeof vitals === "object" &&
+    vitals !== null &&
+    isNullableNumber(vitals.lcp) &&
+    isNullableNumber(vitals.inp) &&
+    isNullableNumber(vitals.cls) &&
     typeof candidate.timestamp === "string"
   );
 }

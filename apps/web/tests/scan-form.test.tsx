@@ -91,6 +91,8 @@ describe("ScanForm", () => {
 
     expect(screen.getByRole("alert").textContent).toMatch(/scheme/i);
     expect(screen.getByLabelText("Website URL").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByLabelText("Website URL").getAttribute("aria-required")).toBe("true");
+    expect((screen.getByLabelText("Website URL") as HTMLInputElement).required).toBe(true);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -153,7 +155,7 @@ describe("ScanForm", () => {
     expect(JSON.parse(init.body as string)).toEqual({ url: "https://127.0.0.1:8443" });
   });
 
-  it("renders a failed state with a human cause hint and Retry on 502", async () => {
+  it("renders a failed state with the envelope's message and Retry on 502", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
@@ -169,9 +171,27 @@ describe("ScanForm", () => {
     submitScanForm();
 
     await flushMicrotasks();
-    expect(screen.queryByText(UNREACHABLE_HINT)).not.toBeNull();
+    expect(screen.queryByText("The scanner service is unavailable.")).not.toBeNull();
+    expect(screen.queryByText(UNREACHABLE_HINT)).toBeNull();
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("The scanner service is unavailable.");
     expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+  });
+
+  it("falls back to mapped copy when the envelope message is empty", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonLike({ code: "unreachable", message: "", stage: "harvest" }, 502),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ScanForm />);
+    typeIn(screen.getByLabelText("Website URL"), "https://unreachable.example");
+    submitScanForm();
+
+    await flushMicrotasks();
+    expect(screen.queryByText(UNREACHABLE_HINT)).not.toBeNull();
   });
 
   it("renders a paused state with the exact rate-limit copy and Translating step on 503", async () => {
@@ -193,7 +213,9 @@ describe("ScanForm", () => {
   it("retries the current edited input after a failure", async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonLike({ code: "unreachable", message: "down", stage: "harvest" }, 502))
+      .mockResolvedValueOnce(
+        jsonLike({ code: "unreachable", message: "We couldn't reach the site — the server is down.", stage: "harvest" }, 502),
+      )
       .mockResolvedValueOnce(jsonLike(RESULT, 200));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -202,7 +224,7 @@ describe("ScanForm", () => {
     typeIn(input, "https://old.example");
     submitScanForm();
     await flushMicrotasks();
-    expect(screen.queryByText(UNREACHABLE_HINT)).not.toBeNull();
+    expect(screen.queryByText("We couldn't reach the site — the server is down.")).not.toBeNull();
 
     typeIn(input, "https://edited.example");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
