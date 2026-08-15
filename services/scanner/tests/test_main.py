@@ -7,7 +7,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from services.scanner.app.main import app
+from services.scanner.app.errors import HarvestError
+from services.scanner.app.main import app, validate_envelope
 
 client = TestClient(app)
 
@@ -93,3 +94,40 @@ def test_unreachable_host_returns_typed_failure() -> None:
     assert set(body) == {"code", "message", "stage"}
     assert body["code"] == "unreachable"
     assert body["stage"] == "harvest"
+
+
+def test_validate_envelope_rejects_non_conformant_envelope() -> None:
+    """The schema gate must reject a tampered envelope, never silently pass it."""
+    bad = {
+        "schemaVersion": "1.0.0",
+        "scanId": "not-a-ulid",
+        "url": "https://example.com",
+        "violations": [{"id": "x", "impact": "banana", "description": "d", "helpUrl": None, "nodes": []}],
+        "vitals": {"lcp": None, "inp": None, "cls": None},
+        "timestamp": "2026-08-15T00:00:00Z",
+    }
+    with pytest.raises(HarvestError) as exc:
+        validate_envelope(bad)
+    assert exc.value.code == "schema_error"
+
+
+def test_validate_envelope_accepts_conformant_envelope() -> None:
+    good = {
+        "schemaVersion": "1.0.0",
+        "scanId": "01J00000000000000000000000",
+        "url": "https://example.com",
+        "violations": [],
+        "vitals": {"lcp": None, "inp": None, "cls": None},
+        "timestamp": "2026-08-15T00:00:00Z",
+    }
+    validate_envelope(good)
+
+
+def test_rejects_non_string_url_body() -> None:
+    """A non-string `url` must map to the typed 422 invalid_request handler."""
+    res = client.post("/scan", json={"url": 123})
+    assert res.status_code == 422
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "invalid_request"
+    assert body["stage"] == "validate"

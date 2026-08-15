@@ -10,12 +10,13 @@ returns either a ScanResult envelope (HTTP 200) or a typed
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import ulid
 from fastapi import FastAPI
-from jsonschema import Draft7Validator
+from jsonschema import Draft7Validator, FormatChecker
 from pydantic import BaseModel, ConfigDict
 
 from services.scanner.app.errors import HarvestError, ScanError, register_exception_handlers
@@ -33,6 +34,19 @@ app = FastAPI(
 register_exception_handlers(app)
 
 _scan_result_validator: Draft7Validator | None = None
+_format_checker = FormatChecker()
+
+
+@_format_checker.checks("date-time")
+def _check_date_time(value: object) -> bool:
+    """Validate ISO-8601 date-time without depending on python-dateutil."""
+    if not isinstance(value, str):
+        return True
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return True
+    except ValueError:
+        return False
 
 
 def _get_schema_validator() -> Draft7Validator:
@@ -40,7 +54,7 @@ def _get_schema_validator() -> Draft7Validator:
     global _scan_result_validator
     if _scan_result_validator is None:
         schema = json.loads(SCAN_RESULT_SCHEMA_PATH.read_text(encoding="utf-8"))
-        _scan_result_validator = Draft7Validator(schema)
+        _scan_result_validator = Draft7Validator(schema, format_checker=_format_checker)
     return _scan_result_validator
 
 

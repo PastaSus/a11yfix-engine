@@ -46,6 +46,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 playwright-report/
+test-results/
 
 # bmad-method
 # Committed: the method itself (_bmad/) and the planning artifacts (_bmad-output/)

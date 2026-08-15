@@ -73,5 +73,18 @@ def register_exception_handlers(app: FastAPI) -> None:
             },
         )
 
+    @app.exception_handler(Exception)
+    async def _handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+        """Last-resort guard: keep the ADR-8 `{ code, message, stage }` envelope on
+        any unexpected exception rather than leaking FastAPI's default HTML 500."""
+        return JSONResponse(
+            status_code=500,
+            content={
+                "code": "scan_error",
+                "message": f"An unexpected error occurred while processing the scan. ({exc.__class__.__name__})",
+                "stage": "harvest",
+            },
+        )
+
 
 __all__ = ["ScanError", "ValidationError", "HarvestError", "register_exception_handlers"]

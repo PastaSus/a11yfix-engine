@@ -47,7 +47,11 @@ def extract_violations(axe_results: dict[str, Any]) -> list[dict[str, Any]]:
         nodes = []
         for node in raw.get("nodes", []):
             target = node.get("target", [])
-            node_id = (" > ".join(target) if target else node.get("html", "")) or f"node-{len(nodes)}"
+            node_id = (
+                " > ".join(target[0]) if target and isinstance(target[0], list) else " > ".join(target)
+            )
+            if not node_id:
+                node_id = node.get("html", "") or f"node-{len(nodes)}"
             nodes.append({"nodeId": node_id, "coordinates": None})
         violations.append(
             {
@@ -105,6 +109,12 @@ async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
                 try:
                     await page.add_script_tag(content=load_axe_source())
                     axe_results: dict[str, Any] = await page.evaluate("() => window.axe.run()")
+                    if not isinstance(axe_results, dict):
+                        raise HarvestError(
+                            f"Axe-core returned an unexpected result on {url}; it may be blocked by a Content-Security-Policy. "
+                            f"(result type: {type(axe_results).__name__})",
+                            code="harvest_script_error",
+                        )
                 except (PlaywrightError, PlaywrightTimeoutError) as exc:
                     raise HarvestError(
                         f"Axe-core could not run on {url}; it may be blocked by a Content-Security-Policy. "

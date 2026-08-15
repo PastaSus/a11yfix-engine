@@ -7,11 +7,13 @@ ValidationError (`{ code, message, stage: "validate" }`, HTTP 400).
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse
 
 from services.scanner.app.errors import ValidationError
 
 ALLOWED_SCHEMES = ("https",)
+HOSTNAME_PATTERN = re.compile(r"^[A-Za-z0-9.\-]+$")
 
 
 def validate_url(url: str) -> str:
@@ -44,5 +46,11 @@ def validate_url(url: str) -> str:
         raise ValidationError("The URL contains an invalid port.", code="invalid_url")
     if port is not None and not (1 <= port <= 65535):
         raise ValidationError("The URL contains an out-of-range port.", code="invalid_url")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValidationError("The URL is missing a hostname (e.g. https://example.com).", code="invalid_url")
+    if not HOSTNAME_PATTERN.fullmatch(hostname):
+        raise ValidationError("The URL contains an invalid hostname.", code="invalid_url")
 
     return candidate

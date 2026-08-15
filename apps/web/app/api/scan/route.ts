@@ -1,4 +1,4 @@
-const SCANNER_URL = process.env.SCANNER_URL ?? "http://127.0.0.1:8000";
+const SCANNER_URL = (process.env.SCANNER_URL ?? "http://127.0.0.1:8000").replace(/\/+$/, "");
 const SCAN_FETCH_TIMEOUT_MS = 130_000;
 
 export async function POST(request: Request) {
@@ -34,7 +34,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const text = await res.text();
+  let text: string;
+  try {
+    text = await res.text();
+  } catch {
+    return Response.json(
+      { code: "unreachable", message: "The scanner service response could not be read. Is it running on " + SCANNER_URL + "?", stage: "harvest" },
+      { status: 502 },
+    );
+  }
   let data: unknown;
   try {
     data = JSON.parse(text);

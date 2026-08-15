@@ -99,6 +99,19 @@ def test_scan_id_is_ulid_shaped() -> None:
     assert scan_id.isalnum()
 
 
+def test_real_ulid_matches_schema_pattern() -> None:
+    """A freshly generated ULID must satisfy the contract's scanId pattern."""
+    import re
+    import ulid
+
+    validator = Draft7Validator(_load_schema())
+    scan_id = str(ulid.new())
+    envelope = build_scan_result("https://example.com", scan_id, [])
+    errors = sorted(validator.iter_errors(envelope), key=lambda e: list(e.path))
+    assert not errors, [e.message for e in errors]
+    assert re.fullmatch(r"^[0-9A-HJKMNP-TV-Z]{26}$", scan_id)
+
+
 async def test_wall_clock_timeout_returns_typed_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """A scan that exceeds the wall-clock bound must become a typed timeout, never hang."""
     async def never_returns(url: str, scan_id: str) -> dict[str, Any]:
