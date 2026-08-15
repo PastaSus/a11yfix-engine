@@ -49,3 +49,15 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - `test_deferred_spa_captures_late_violations` depends on `networkidle` firing only after `/slow` (~1.2s) resolves while the img inserts at ~300ms; under heavy CI delays the timer could fire late and the test flakes. Harden by waiting on an explicit selector or widening the `/slow` window.
 - No end-to-end assertion that `code:"timeout"` surfaces as HTTP 502 via `POST /scan`; proven transitively through the same `errors.py` handler that `test_main` covers. Direct assertion can ride story 1.4's seam fixtures.
 - No offline deterministic test pins the static-page EDGE_CASE (existing live test `test_happy_path_live_scan` skips offline). A cheap static fixture + short budget test can close it when SPA fixtures are next touched.
+
+## Deferred from: code review of spec-1-3 (2026-08-15)
+
+- CLS is a raw accumulated sum, not the web-vitals session-window metric; on long-lived/infinite-scroll pages it over-reports versus the standard. Full web-vitals semantics (session windows, LCP revocation, renderTime) are a fancier probe — deferred to a vitals-fidelity hardening story when Epic 3 renders exact numbers.
+- LCP takes the last candidate's `startTime`, ignoring revocation semantics and `renderTime`; acceptable for short single-page-load scans, matches the "cheap scalar, bounded scan" constraint.
+- Vitals are read with no observer flush; a shift in the final milliseconds before the read can be missed (non-deterministic under load). Bounded scans make this low-impact; revisit with session-window work.
+- The `MAX_CONCURRENT_SCANS` bound is per-process (module-level semaphore); under multiple uvicorn workers effective concurrency is `3 × workers`. Intentional under "slotting only, no shared state"; revisit when a hosted tier lands.
+- Slot constants (`MAX_CONCURRENT_SCANS`, `SCAN_SLOT_TIMEOUT_MS`) are hardcoded with no env override. Tuning via env/config belongs with the observability/ops story.
+- `_chromium_available()` is copy-pasted in test_main/test_spa_render/test_vitals and each copy launches a real browser at collection time. Consolidate into `conftest.py` (session-cached) when the test seam is next touched.
+- The "observers never fire" I/O row has no live-browser test (only unit coverage of `collect_vitals`); a real blob/blank page reading is unpinned. Cheap to add with a bare fixture when SPA fixtures are next touched.
+- The "same page load" invariant (vitals from the same navigation as axe) is not test-observable — both observers use `buffered: true`, so a regression that re-navigated before reading would still pass. Mechanism-pinning test deferred as flake-prone.
+- No test exercises N simultaneous `/scan`s through the real shared `_SCAN_SLOT` happy path (unit tests cover single-slot acquire). A bounded-capacity concurrency integration test can ride story 1.4's progress-workflow fixtures.
