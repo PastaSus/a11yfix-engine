@@ -39,7 +39,7 @@ development_status:
   1-1-capture-a-structured-scan-of-a-public-url: done
   1-2-harvest-the-dom-with-spa-render-awareness: done
   1-3-capture-core-web-vitals-in-the-audit: done
-  1-4-submit-a-scan-from-the-web-and-watch-progress: backlog
+  1-4-submit-a-scan-from-the-web-and-watch-progress: done
   epic-1-retrospective: optional
 
   epic-2: backlog

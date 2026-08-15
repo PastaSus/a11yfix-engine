@@ -61,3 +61,12 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - The "observers never fire" I/O row has no live-browser test (only unit coverage of `collect_vitals`); a real blob/blank page reading is unpinned. Cheap to add with a bare fixture when SPA fixtures are next touched.
 - The "same page load" invariant (vitals from the same navigation as axe) is not test-observable — both observers use `buffered: true`, so a regression that re-navigated before reading would still pass. Mechanism-pinning test deferred as flake-prone.
 - No test exercises N simultaneous `/scan`s through the real shared `_SCAN_SLOT` happy path (unit tests cover single-slot acquire). A bounded-capacity concurrency integration test can ride story 1.4's progress-workflow fixtures.
+
+## Deferred from: code review of spec-1-4 (2026-08-15)
+
+- No client-side timeout or cancel on `submitScan`: the route's own 130s `AbortSignal` bounds the stalled `scanning` state, but a hung proxy leaves the form stuck with submit/Retry locked. A client timeout + cancel affordance belongs with the Epic 2 translate/retry workflow.
+- IPv6 hosts (`https://[::1]`, global addresses) are rejected by both the client validator and the scanner (`HOSTNAME_PATTERN` does not allow `:`); enabling IPv6 scans is a co-engineered client+scanner product decision for a later story.
+- Client/scanner host-name divergence for IDN/unicode URLs: `validateScanUrl` accepts `https://bücher.de` (the browser URL API punycode-normalizes the host), but the raw unicode host is POSTed and the scanner rejects it (`ü` not in `[A-Za-z0-9.\-]`), surfacing a confusing "invalid hostname" failure. Fix direction: punycode-normalize before POST or mirror the ASCII-host rule in the client.
+- DESIGN.md-pinned tokens need an a11y pass in story 3.1's foundation: `--color-outline #94a3b8` on `--color-surface #f8fafc` is below WCAG 1.4.11's 3:1 non-text contrast, and the palette stays light-only in dark OS schemes (a `color-scheme` declaration and token variants belong with the 3.1 token foundation).
+- Paused copy "Translation is waiting on a free-tier limit — retrying." is spec-frozen but 1.4 has no auto-retry; auto-resume/backoff belongs with the Epic 2 translate pipeline.
+- The ready surface intentionally shows only count + LCP/CLS + timestamp (1.4 happy path); violation details and INP render with Epic 3's report surface. Retaining the last-good result across re-runs is also a later report-epic concern.

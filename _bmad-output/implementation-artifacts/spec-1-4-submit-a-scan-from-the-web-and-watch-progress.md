@@ -3,8 +3,8 @@ title: '1-4: Submit a scan from the web and watch progress'
 type: 'feature'
 created: '2026-08-15'
 baseline_commit: 'd88d4912f030b3cf51ed91389ba709150557cd4a'
-status: 'in-review'
-review_loop_iteration: 0
+status: 'done'
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md'
   - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md'
@@ -85,6 +85,8 @@ context:
 - Given no scans yet, when the Home page loads, then the empty state reads "No scans yet — paste a URL to run your first audit.".
 
 ## Spec Change Log
+
+- **2026-08-15 (review loop 1):** Four-layer code review (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) merged. Patches applied: `isScanResult` now requires `vitals.lcp/inp/cls` as `number|null` so a near-valid 200 envelope can no longer paint "NaN ms" (two new `scan.test.ts` cases); the failed state surfaces the envelope's own human `message` with the static hint table as empty-message fallback (three test pins); `route.test.ts` pins `SCANNER_URL` via `vi.stubEnv` + fresh module import so an ambient env override cannot flake the seam assertions; the URL input is marked `required`/`aria-required`; completed `ProgressStepper` steps announce as "completed" and the component gained a dedicated test suite; the failed panel uses `role="alert"` so action failures interrupt; the unused `@testing-library/user-event` devDependency is removed. Dismissed with evidence: `@/` alias imports (resolved via `tsconfig` paths + `vite-tsconfig-paths`), route.ts absence from the diff (seam unchanged by design), IPv6 eligibility (scanner rejects the same), translating-stage visibility under failures, copy-constant test duplication (frozen-copy contract pins), deterministic fake-timer helper. Deferred entries logged in `deferred-work.md` (client timeout/cancel, IPv6, IDN host mismatch, design-token contrast, paused auto-resume, report details/history). KEEP: any single-page passthrough, 400ms translating buffer, 130s server-bounded scan.
 
 ## Design Notes
 
