@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from services.scanner.app.errors import HarvestError
-from services.scanner.app.harvest import run_scan
+from services.scanner.app.harvest import run_scan, run_scan_with_timeout
 
 TEST_SCAN_ID = "01J00000000000000000000000"
 
@@ -90,3 +90,33 @@ async def test_endless_spa_returns_typed_timeout(
     assert exc.value.code == "timeout"
     assert exc.value.stage == "harvest"
     assert set(exc.value.to_dict()) == {"code", "message", "stage"}
+
+
+@pytest.mark.skipif(not _chromium_available(), reason="chromium binary not installed")
+async def test_scan_slot_released_after_success(
+    spa_fixture_server: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A successful scan returns the real semaphore to fully-free."""
+    sem: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", sem)
+    await run_scan(f"{spa_fixture_server}/spa-deferred.html", TEST_SCAN_ID)
+    assert sem._value == 1  # noqa: SLF001
+
+
+@pytest.mark.skipif(not _chromium_available(), reason="chromium binary not installed")
+async def test_scan_slot_released_after_typed_failure(
+    spa_fixture_server: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A typed failure (endless-SPA timeout) also returns the slot to fully-free."""
+    sem: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", sem)
+    monkeypatch.setattr("services.scanner.app.harvest.NETWORKIDLE_TIMEOUT_MS", 100)
+    monkeypatch.setattr("services.scanner.app.harvest.DOM_STABILITY_BUDGET_MS", 1_500)
+    monkeypatch.setattr("services.scanner.app.harvest.DOM_STABILITY_SAMPLE_MS", 100)
+
+    with pytest.raises(HarvestError) as exc:
+        await run_scan_with_timeout(
+            f"{spa_fixture_server}/spa-endless.html", TEST_SCAN_ID, timeout_seconds=30
+        )
+    assert exc.value.code == "timeout"
+    assert sem._value == 1  # noqa: SLF001

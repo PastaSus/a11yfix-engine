@@ -15,6 +15,7 @@ from jsonschema import Draft7Validator
 from services.scanner.app.errors import HarvestError
 from services.scanner.app.harvest import (
     DOM_STABILITY_SAMPLES_REQUIRED,
+    acquire_scan_slot,
     build_scan_result,
     dom_has_stabilized,
     extract_violations,
@@ -149,3 +150,48 @@ async def test_wall_clock_timeout_returns_typed_timeout(monkeypatch: pytest.Monk
     assert exc.value.code == "timeout"
     assert exc.value.stage == "harvest"
     assert set(exc.value.to_dict()) == {"code", "message", "stage"}
+
+
+async def test_acquire_scan_slot_busy_when_slots_exhausted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Saturation past the slot bound is a typed `busy`, never a hang."""
+    monkeypatch.setattr("services.scanner.app.harvest.SCAN_SLOT_TIMEOUT_MS", 50)
+    full: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", full)
+    await full.acquire()
+    with pytest.raises(HarvestError) as exc:
+        await acquire_scan_slot()
+    assert exc.value.code == "busy"
+    assert exc.value.stage == "harvest"
+    assert set(exc.value.to_dict()) == {"code", "message", "stage"}
+
+
+async def test_acquire_scan_slot_succeeds_when_slot_free(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A free slot is consumed immediately and the waiter returns normally."""
+    free: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", free)
+    await acquire_scan_slot()
+    assert free.locked(), "the single available slot must have been consumed"
+
+
+async def test_acquire_scan_slot_succeeds_after_release(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A released slot wakes the next waiter; busy is only the timeout path."""
+    monkeypatch.setattr("services.scanner.app.harvest.SCAN_SLOT_TIMEOUT_MS", 50)
+    sem: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", sem)
+    await sem.acquire()
+    with pytest.raises(HarvestError):
+        await acquire_scan_slot()
+    sem.release()
+    await acquire_scan_slot()
+
+
+async def test_busy_passes_through_wall_clock_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The `busy` error must not be reclassified as a wall-clock `timeout`."""
+    monkeypatch.setattr("services.scanner.app.harvest.SCAN_SLOT_TIMEOUT_MS", 50)
+    full: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", full)
+    await full.acquire()
+    with pytest.raises(HarvestError) as exc:
+        await run_scan_with_timeout("https://example.com", "01J00000000000000000000000", timeout_seconds=5)
+    assert exc.value.code == "busy"
+    assert exc.value.stage == "harvest"

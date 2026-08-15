@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -69,6 +70,21 @@ def test_rejects_extra_field() -> None:
     res = client.post("/scan", json={"url": "https://example.com", "surprise": 1})
     assert res.status_code == 422
     assert res.json()["code"] == "invalid_request"
+
+
+def test_busy_returns_http_503_when_slots_exhausted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Saturation across the HTTP seam is a typed HTTP 503 `busy`, not a 502."""
+    monkeypatch.setattr("services.scanner.app.harvest.SCAN_SLOT_TIMEOUT_MS", 50)
+    full: asyncio.Semaphore = asyncio.Semaphore(1)
+    monkeypatch.setattr("services.scanner.app.harvest._SCAN_SLOT", full)
+    full._value = 0  # noqa: SLF001  # simulate an already-fully-acquired semaphore
+
+    res = client.post("/scan", json={"url": "https://example.com"})
+    assert res.status_code == 503
+    body = res.json()
+    assert set(body) == {"code", "message", "stage"}
+    assert body["code"] == "busy"
+    assert body["stage"] == "harvest"
 
 
 @pytest.mark.skipif(not _chromium_available(), reason="chromium binary not installed")

@@ -2,7 +2,7 @@
 
 Every error leaving the service is the `{ code, message, stage }` envelope
 (ADR-8). HTTP status reflects severity: validation errors -> 400, harvest
-errors -> 502.
+errors -> 502, capacity (`busy`) -> 503.
 """
 
 from __future__ import annotations
@@ -43,6 +43,17 @@ class HarvestError(ScanError):
     code = "unreachable"
     stage = "harvest"
     status_code = 502
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        super().__init__(message, code=code)
+        if status_code is not None:
+            self.status_code = status_code
 
 
 def register_exception_handlers(app: FastAPI) -> None:
