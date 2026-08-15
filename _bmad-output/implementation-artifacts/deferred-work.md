@@ -39,3 +39,13 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - scanner→contracts coupling via hardcoded relative path, not a declared dependency.
 - route.ts error codes are hardcoded strings not validated against the shared contract; `invalid_url/400` (route) vs `invalid_request/422` (scanner) inconsistent for the same failure class.
 - `conversion_impact_estimate` typed as `string` can't be compared/summed — forces Epic 3 web tier to parse free text.
+
+## Deferred from: code review of spec-1-2 (2026-08-15)
+
+- Non-timeout `PlaywrightError` from `wait_for_load_state`/`page.evaluate` escapes `wait_spa_ready` (harvest.py:181-184) and is re-labeled `{ code: "unreachable" }` by `run_scan`'s outer handler — typed and bounded, but the message ("couldn't reach URL") misreports a target-crash/closed-page cause. Distinguish `target crashe`/`closed` `PlaywrightError`s when browser-crash observability lands (epic observability item).
+- The DOM-stability loop checks the budget only between iterations, so one hung `page.evaluate` can exceed the 15s fallback by up to one Playwright action-timeout (~30s default). Still bounded; `run_scan_with_timeout` (120s) remains the backstop. Consider setting an explicit `page.set_default_timeout` on the probe when hardening.
+- Worst-case pre-axe wait on a never-idle + never-stable page is \~45s (30s networkidle + 15s stability) plus navigation — sequential budgets are spec-frozen; revisit if NFR-2 latency targets tighten.
+- Fingerprint is `document.body.innerHTML.length` only; length-preserving churn (same-length text swap, attribute swap, node reorder) reads as stable. Spec chose this scalar; a richer fingerprint (e.g. element-count + length hash) can ride a future SPA-hardening story.
+- `test_deferred_spa_captures_late_violations` depends on `networkidle` firing only after `/slow` (~1.2s) resolves while the img inserts at ~300ms; under heavy CI delays the timer could fire late and the test flakes. Harden by waiting on an explicit selector or widening the `/slow` window.
+- No end-to-end assertion that `code:"timeout"` surfaces as HTTP 502 via `POST /scan`; proven transitively through the same `errors.py` handler that `test_main` covers. Direct assertion can ride story 1.4's seam fixtures.
+- No offline deterministic test pins the static-page EDGE_CASE (existing live test `test_happy_path_live_scan` skips offline). A cheap static fixture + short budget test can close it when SPA fixtures are next touched.
