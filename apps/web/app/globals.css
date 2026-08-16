@@ -2,8 +2,8 @@
 
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --surface: #f8fafc;
   --surface-container: #f1f5f9;
   --surface-container-high: #e2e8f0;
@@ -33,8 +33,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a;
+    --foreground: #e2e8f0;
     --surface: #0f172a;
     --surface-container: #1e293b;
     --surface-container-high: #334155;
@@ -61,6 +61,7 @@
 }
 
 @theme inline {
+  --container-report: 1040px;
   --color-surface: var(--surface);
   --color-surface-container: var(--surface-container);
   --color-surface-container-high: var(--surface-container-high);
@@ -106,7 +107,7 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--surface);
+  color: var(--on-surface);
   font-family: var(--font-sans);
 }

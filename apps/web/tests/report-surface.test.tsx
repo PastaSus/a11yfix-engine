@@ -58,6 +58,10 @@ describe("severityTier", () => {
     expect(severityTier("moderate")).toBe("moderate");
     expect(severityTier("minor")).toBe("minor");
   });
+
+  it("lands an out-of-vocabulary impact on the visible moderate tier instead of dropping it", () => {
+    expect(severityTier("impact-none" as Violation["impact"])).toBe("moderate");
+  });
 });
 
 describe("ReportSurface", () => {
@@ -148,6 +152,31 @@ describe("ReportSurface", () => {
     expect(exportButton.className).toContain("focus-visible:outline-2");
     expect(() => fireEvent.click(exportButton)).not.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("health chip names exactly the present bands: moderate-only report", () => {
+    const report = makeReport([makeViolation("moderate", "v3")]);
+    render(<ReportSurface report={report} />);
+    expect(screen.getByText("Moderate issues")).not.toBeNull();
+    expect(screen.queryByText("Moderate and minor issues")).toBeNull();
+  });
+
+  it("health chip names exactly the present bands: minor-only report stays conforming", () => {
+    const report = makeReport([makeViolation("minor", "v5")]);
+    render(<ReportSurface report={report} />);
+    const healthChip = screen.getByText("Minor issues");
+    expect(healthChip.className).toContain("bg-conforming-container");
+    expect(screen.queryByText("Moderate and minor issues")).toBeNull();
+    expect(screen.queryByText(/all good/i)).toBeNull();
+  });
+
+  it("health chip names both bands when moderate and minor coexist", () => {
+    const report = makeReport([
+      makeViolation("moderate", "v3"),
+      makeViolation("minor", "v5"),
+    ]);
+    render(<ReportSurface report={report} />);
+    expect(screen.getByText("Moderate and minor issues")).not.toBeNull();
   });
 
   it("introduces no transitions anywhere (Reduce Motion)", () => {

@@ -15,6 +15,25 @@ function isAudience(value: string | null): value is Audience {
   return value === "client" || value === "developer";
 }
 
+function readStoredAudience(): Audience | null {
+  try {
+    const stored = sessionStorage.getItem(AUDIENCE_STORAGE_KEY);
+    return isAudience(stored) ? stored : null;
+  } catch {
+    // Storage blocked/partitioned (private browsing, sandboxed frames): fall
+    // through to the in-memory default instead of crashing the surface.
+    return null;
+  }
+}
+
+function persistAudience(audience: Audience): void {
+  try {
+    sessionStorage.setItem(AUDIENCE_STORAGE_KEY, audience);
+  } catch {
+    // Persistence unavailable — stickiness degrades to in-memory state.
+  }
+}
+
 export function AudienceToggle({
   value,
   onChange,
@@ -23,14 +42,14 @@ export function AudienceToggle({
   onChange: (audience: Audience) => void;
 }) {
   useEffect(() => {
-    const stored = sessionStorage.getItem(AUDIENCE_STORAGE_KEY);
-    if (isAudience(stored)) {
+    const stored = readStoredAudience();
+    if (stored) {
       onChange(stored);
     }
   }, [onChange]);
 
   function handleSelect(audience: Audience) {
-    sessionStorage.setItem(AUDIENCE_STORAGE_KEY, audience);
+    persistAudience(audience);
     onChange(audience);
   }
 

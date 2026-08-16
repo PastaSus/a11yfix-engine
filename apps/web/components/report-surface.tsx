@@ -46,8 +46,14 @@ function healthFor(counts: TierCounts): { label: string; tone: HealthTone } {
       tone: "critical",
     };
   }
-  if (counts.moderate > 0 || counts.minor > 0) {
-    return { label: "Moderate and minor issues", tone: "moderate" };
+  if (counts.moderate > 0) {
+    return {
+      label: counts.minor > 0 ? "Moderate and minor issues" : "Moderate issues",
+      tone: "moderate",
+    };
+  }
+  if (counts.minor > 0) {
+    return { label: "Minor issues", tone: "conforming" };
   }
   return { label: "No critical issues", tone: "conforming" };
 }
@@ -71,7 +77,7 @@ export function ReportSurface({ report }: { report: AuditReport }) {
 
   return (
     <section aria-labelledby={titleId} className="bg-surface text-on-surface">
-      <div className="mx-auto w-full max-w-[1040px] px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-report px-4 py-6 sm:px-6">
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-outline pb-4">
           <div className="min-w-0">
             <h2 id={titleId} className="break-all text-2xl font-semibold leading-tight">

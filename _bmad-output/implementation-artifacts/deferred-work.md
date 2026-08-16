@@ -92,3 +92,8 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-establish-the-design-foundation-and-report-surface.md`
   summary: No Epic 3 story wires the pipeline scan→translate→report or mounts the report surface onto a route — 3.1/3.2/3.3 all build standalone components fed by an `AuditReport` prop, so the app still cannot produce or reach a live AuditReport end-to-end.
   evidence: Story 3.1 scopes the Present surface as a standalone module consistent with the 2.1–2.3 seam; producing a real AuditReport needs the translate route + provider wiring that Epics 2–3 defer. Surface mounting becomes viable once personas are wired; revisit as a dedicated wiring story before the report flow is demoable.
+
+## Deferred from: code review of spec-3-1 (2026-08-16)
+
+- The `AudienceToggle` restore effect is keyed on `onChange` (`apps/web/components/audience-toggle.tsx:25-30`); an unstable callback from a future consumer would re-run the storage restore on every render and could clobber a fresh user choice. Latent today (ReportSurface passes the stable `setAudience`); document the "onChange must be stable" contract or switch to a mount-once restore when the surface gets wired to a route.
+- The audience storage key `a11yfix:audience` is global to the session; once more than one report surface can exist in a session, toggling one silently overrides the other's on remount. Scope the key per report/scanId at wiring time.
