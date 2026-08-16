@@ -70,3 +70,19 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - DESIGN.md-pinned tokens need an a11y pass in story 3.1's foundation: `--color-outline #94a3b8` on `--color-surface #f8fafc` is below WCAG 1.4.11's 3:1 non-text contrast, and the palette stays light-only in dark OS schemes (a `color-scheme` declaration and token variants belong with the 3.1 token foundation).
 - Paused copy "Translation is waiting on a free-tier limit — retrying." is spec-frozen but 1.4 has no auto-retry; auto-resume/backoff belongs with the Epic 2 translate pipeline.
 - The ready surface intentionally shows only count + LCP/CLS + timestamp (1.4 happy path); violation details and INP render with Epic 3's report surface. Retaining the last-good result across re-runs is also a later report-epic concern.
+
+## Deferred from: code review of spec-2-1 (2026-08-16)
+
+- `AuditReport.schemaVersion` is a passthrough of the ScanResult's version; the two canonical schemas pin the same `1.0.0` today, but the versioning scheme for the enriched envelope (per-shape vs shared base) is still undecided from the spec-1-1 deferral — revisit when the web tier gains schema validation.
+- Hand-written `AuditReport`/`AnalystImpact` TS types are not generated from `contracts/audit-report.schema.json`, so type↔schema drift is only caught by tests; the web tier still has no runtime schema-validation pass (deferred `@a11yfix/contracts` item). This is the AC-2 "no schema validation" gap.
+- `MAX_TOKENS = 1024` is fixed regardless of high-severity violation count and `finish_reason` is never inspected; a truncation would surface as a `translate_error` (bounded, typed) rather than a retry with a bigger budget. Consider dynamic budget when many violations land.
+- `extractJsonArray` slices between the first `[` and last `]`; a provider reply wrapped in prose/markdown fences containing brackets could mis-slice (degrades to a typed `translate_error`). Fence-aware extraction can ride a prompt-hardening pass.
+- `scanResult.url` (user-supplied public URL) is sent verbatim to the third-party AI provider in the prompt; query strings could carry trackers/IDs. Product flow is public-URL-only, so low risk, but consider passing origin + node counts only if privacy is tightened.
+
+## Deferred from: code review of spec-2-2 (2026-08-16)
+
+- Architect diffs cannot be grounded in real source: the scanner returns rule descriptions + node ids, not template/source HTML, so the model invents paths like `src/app/components/card.tsx`. Proposals are therefore plausible-but-unverified; story 2.3's renderer should label that clearly. Surfacing real source for grounding is a harvest-side product decision for a later epic.
+- `MAX_PATCH_TOKENS = 2048` (and Analyst `MAX_TOKENS = 1024`) are fixed regardless of violation count; large high-severity reports truncate and degrade to a typed `translate_error`. A per-run scaled budget (e.g. `max(floor, count * per-violation)` capped) can replace the constants once `finish_reason` is inspected.
+- Architect diff validation accepts add-only or delete-only unified diffs (rejects both), and does not require `---/+++`/`@@` headers — a valid add-only patch fails typed today. Deciding the exact diff contract (headers mandatory vs content-lines-only) belongs with story 2.3's renderer, which is the actual diff consumer.
+- `chat()` up-front sends no `Accept` header so some providers may stream SSE; the client always `res.json()`-parses, so an SSE body degrades to a typed `translate_error`. Add `Accept: application/json` (or stream support) when streaming is actually wanted.
+- Persona boilerplate is duplicated across analyst/architect (`TranslateError` catch-normalization, start/end/error log blocks, `deps` defaults). A shared `runTranslate`-style wrapper can deduplicate when a third persona or the route wiring lands.
