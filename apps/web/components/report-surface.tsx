@@ -1,0 +1,171 @@
+"use client";
+
+import { useId, useMemo, useState } from "react";
+import { AudienceToggle, type Audience } from "@/components/audience-toggle";
+import { severityTier, type SeverityTier } from "@/lib/severity";
+import type { AuditReport } from "@/lib/translate/client";
+
+type TierCounts = Record<SeverityTier, number>;
+
+const EMPTY_COUNTS: TierCounts = { critical: 0, moderate: 0, minor: 0 };
+
+const TIER_ORDER: SeverityTier[] = ["critical", "moderate", "minor"];
+
+const TIER_LABELS: Record<SeverityTier, string> = {
+  critical: "Critical",
+  moderate: "Moderate",
+  minor: "Minor",
+};
+
+const COUNT_CHIP: Record<SeverityTier, string> = {
+  critical: "bg-critical-container text-on-critical-container",
+  moderate: "bg-moderate-container text-on-moderate-container",
+  minor: "bg-minor-container text-on-minor-container",
+};
+
+type HealthTone = "critical" | "moderate" | "conforming";
+
+const HEALTH_CHIP: Record<HealthTone, string> = {
+  critical: "bg-critical-container text-on-critical-container",
+  moderate: "bg-moderate-container text-on-moderate-container",
+  conforming: "bg-conforming-container text-on-conforming-container",
+};
+
+function countTiers(violations: AuditReport["violations"]): TierCounts {
+  const counts: TierCounts = { ...EMPTY_COUNTS };
+  for (const violation of violations) {
+    counts[severityTier(violation.impact)] += 1;
+  }
+  return counts;
+}
+
+function healthFor(counts: TierCounts): { label: string; tone: HealthTone } {
+  if (counts.critical > 0) {
+    return {
+      label: `${counts.critical} critical issue${counts.critical === 1 ? "" : "s"}`,
+      tone: "critical",
+    };
+  }
+  if (counts.moderate > 0 || counts.minor > 0) {
+    return { label: "Moderate and minor issues", tone: "moderate" };
+  }
+  return { label: "No critical issues", tone: "conforming" };
+}
+
+function formatScanDate(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  return date.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function ReportSurface({ report }: { report: AuditReport }) {
+  const [audience, setAudience] = useState<Audience>("client");
+  const titleId = useId();
+  const counts = useMemo(() => countTiers(report.violations), [report.violations]);
+  const health = healthFor(counts);
+
+  return (
+    <section aria-labelledby={titleId} className="bg-surface text-on-surface">
+      <div className="mx-auto w-full max-w-[1040px] px-4 py-6 sm:px-6">
+        <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-outline pb-4">
+          <div className="min-w-0">
+            <h2 id={titleId} className="break-all text-2xl font-semibold leading-tight">
+              {report.url}
+            </h2>
+            <p className="mt-1 text-sm text-on-surface-variant">
+              <span className="font-medium text-on-surface">Scanned</span>{" "}
+              {formatScanDate(report.timestamp)}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${HEALTH_CHIP[health.tone]}`}
+            >
+              {health.label}
+            </span>
+            <button
+              type="button"
+              className="h-11 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Export report
+            </button>
+          </div>
+        </header>
+
+        <div
+          role="group"
+          aria-label="Severity counts"
+          className="mt-4 flex flex-wrap items-center gap-2"
+        >
+          {TIER_ORDER.map((tier) => (
+            <span
+              key={tier}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${COUNT_CHIP[tier]}`}
+            >
+              <span className="text-lg font-semibold tabular-nums leading-none">
+                {counts[tier]}
+              </span>
+              {" "}
+              {TIER_LABELS[tier]}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <AudienceToggle value={audience} onChange={setAudience} />
+        </div>
+
+        {audience === "client" ? <ClientView /> : <DeveloperView />}
+      </div>
+    </section>
+  );
+}
+
+function ClientView() {
+  return (
+    <section aria-label="Client view" className="grid gap-6 pt-6 md:grid-cols-12">
+      <div className="rounded-md border border-outline bg-surface-container p-6 md:col-span-7">
+        <h3 className="text-lg font-semibold">Executive summary</h3>
+        <p className="mt-2 text-sm text-on-surface-variant">
+          An AI-written, business-readable summary of this audit lands here in a later release.
+        </p>
+      </div>
+      <div className="rounded-md border border-outline bg-surface-container p-6 md:col-span-5">
+        <h3 className="text-lg font-semibold">Priority issues</h3>
+        <p className="mt-2 text-sm text-on-surface-variant">
+          A prioritized list of the issues that matter most to customers and conversion lands here in a later release.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function DeveloperView() {
+  return (
+    <section aria-label="Developer view" className="grid gap-4 pt-6 md:grid-cols-12">
+      <div className="rounded-md border border-outline bg-surface-container p-4 md:col-span-12">
+        <h3 className="text-sm font-semibold">Violations</h3>
+        <p className="mt-1 text-sm text-on-surface-variant">
+          Rule-by-rule violations with affected nodes land here in a later release.
+        </p>
+      </div>
+      <div className="rounded-md border border-outline bg-surface-container p-4 md:col-span-6">
+        <h3 className="text-sm font-semibold">Core Web Vitals</h3>
+        <p className="mt-1 text-sm text-on-surface-variant">
+          LCP, INP, and CLS metrics land here in a later release.
+        </p>
+      </div>
+      <div className="rounded-md border border-outline bg-surface-container p-4 md:col-span-6">
+        <h3 className="text-sm font-semibold">Proposed fixes</h3>
+        <p className="mt-1 text-sm text-on-surface-variant">
+          Generated patches and diffs land here in a later release.
+        </p>
+      </div>
+    </section>
+  );
+}

@@ -1,17 +1,72 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
+  --surface: #f8fafc;
+  --surface-container: #f1f5f9;
+  --surface-container-high: #e2e8f0;
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  --outline: #64748b;
+  --critical: #b91c1c;
+  --on-critical: #ffffff;
+  --critical-container: #fee2e2;
+  --on-critical-container: #7f1d1d;
+  --moderate: #b45309;
+  --on-moderate: #ffffff;
+  --moderate-container: #fef3c7;
+  --on-moderate-container: #78350f;
+  --minor: #475569;
+  --on-minor: #ffffff;
+  --minor-container: #e2e8f0;
+  --on-minor-container: #334155;
+  --conforming: #0f766e;
+  --on-conforming: #ffffff;
+  --conforming-container: #ccfbf1;
+  --on-conforming-container: #134e4a;
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --surface: #0f172a;
+    --surface-container: #1e293b;
+    --surface-container-high: #334155;
+    --on-surface: #e2e8f0;
+    --on-surface-variant: #94a3b8;
+    --outline: #64748b;
+    --critical: #ef4444;
+    --on-critical: #ffffff;
+    --critical-container: #7f1d1d;
+    --on-critical-container: #fecaca;
+    --moderate: #f59e0b;
+    --on-moderate: #ffffff;
+    --moderate-container: #78350f;
+    --on-moderate-container: #fde68a;
+    --minor: #94a3b8;
+    --on-minor: #0f172a;
+    --minor-container: #334155;
+    --on-minor-container: #cbd5e1;
+    --conforming: #2dd4bf;
+    --on-conforming: #0f172a;
+    --conforming-container: #134e4a;
+    --on-conforming-container: #99f6e4;
+  }
 }
 
 @theme inline {
-  --color-surface: #f8fafc;
-  --color-surface-container: #f1f5f9;
-  --color-surface-container-high: #e2e8f0;
-  --color-on-surface: #0f172a;
-  --color-on-surface-variant: #475569;
-  --color-outline: #94a3b8;
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
   --color-primary: #4338ca;
   --color-on-primary: #ffffff;
   --color-primary-container: #e0e7ff;
@@ -28,21 +83,30 @@
   --color-on-success: #ffffff;
   --color-success-container: #dcfce7;
   --color-on-success-container: #14532d;
+  --color-critical: var(--critical);
+  --color-on-critical: var(--on-critical);
+  --color-critical-container: var(--critical-container);
+  --color-on-critical-container: var(--on-critical-container);
+  --color-moderate: var(--moderate);
+  --color-on-moderate: var(--on-moderate);
+  --color-moderate-container: var(--moderate-container);
+  --color-on-moderate-container: var(--on-moderate-container);
+  --color-minor: var(--minor);
+  --color-on-minor: var(--on-minor);
+  --color-minor-container: var(--minor-container);
+  --color-on-minor-container: var(--on-minor-container);
+  --color-conforming: var(--conforming);
+  --color-on-conforming: var(--on-conforming);
+  --color-conforming-container: var(--conforming-container);
+  --color-on-conforming-container: var(--on-conforming-container);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
