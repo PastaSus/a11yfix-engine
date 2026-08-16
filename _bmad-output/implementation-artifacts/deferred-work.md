@@ -86,3 +86,9 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - Architect diff validation accepts add-only or delete-only unified diffs (rejects both), and does not require `---/+++`/`@@` headers — a valid add-only patch fails typed today. Deciding the exact diff contract (headers mandatory vs content-lines-only) belongs with story 2.3's renderer, which is the actual diff consumer.
 - `chat()` up-front sends no `Accept` header so some providers may stream SSE; the client always `res.json()`-parses, so an SSE body degrades to a typed `translate_error`. Add `Accept: application/json` (or stream support) when streaming is actually wanted.
 - Persona boilerplate is duplicated across analyst/architect (`TranslateError` catch-normalization, start/end/error log blocks, `deps` defaults). A shared `runTranslate`-style wrapper can deduplicate when a third persona or the route wiring lands.
+
+## Deferred from: planning spec-3-1 (2026-08-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-establish-the-design-foundation-and-report-surface.md`
+  summary: No Epic 3 story wires the pipeline scan→translate→report or mounts the report surface onto a route — 3.1/3.2/3.3 all build standalone components fed by an `AuditReport` prop, so the app still cannot produce or reach a live AuditReport end-to-end.
+  evidence: Story 3.1 scopes the Present surface as a standalone module consistent with the 2.1–2.3 seam; producing a real AuditReport needs the translate route + provider wiring that Epics 2–3 defer. Surface mounting becomes viable once personas are wired; revisit as a dedicated wiring story before the report flow is demoable.
