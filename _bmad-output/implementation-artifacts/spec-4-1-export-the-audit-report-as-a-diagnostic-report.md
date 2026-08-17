@@ -2,9 +2,9 @@
 title: '4-1: Export the Audit Report as a Diagnostic Report'
 type: 'feature'
 created: '2026-08-20'
-status: 'ready-for-dev'
-baseline_commit: '3d8f8ad9c604ca9b2b310e1f8b31b4c942b1ed39'
-review_loop_iteration: 0
+status: 'done'
+baseline_commit: 'ec7eec28f8a536647869c62b794e173dbe285a59'
+review_loop_iteration: 1
 context:
   - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md'
   - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md'
@@ -66,10 +66,10 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `apps/web/lib/export.ts` — new `renderReportHtml(report)` composing standalone HTML with embedded CSS (design tokens, Inter import, severity colors, layout), severity metric block, priority list, scan metadata + `triggerExport(html, filename)` for Blob download — FR-11/UX-DR10.
-- [ ] `apps/web/components/report-surface.tsx` — replace inert Export button with controlled export flow (`exportState` + `handleExport` calling `renderReportHtml`/`triggerExport`); success shows filename briefly; error shows inline retry; button stays functional and accessible — AC 1, 4.
-- [ ] `apps/web/tests/export.test.ts` — unit tests for `renderReportHtml` (HTML output, all-pass, no-impacts, happy-path sections) and `triggerExport` (Blob, click, revoke) — AC 1–5.
-- [ ] `apps/web/tests/report-surface.test.tsx` — additions: export triggers download, success confirmation, error retry, no fetch, keyboard accessible — AC 4–5.
+- [x] `apps/web/lib/export.ts` — new `renderReportHtml(report)` composing standalone HTML with embedded CSS (design tokens, Inter import, severity colors, layout), severity metric block, priority list, scan metadata + `triggerExport(html, filename)` for Blob download — FR-11/UX-DR10.
+- [x] `apps/web/components/report-surface.tsx` — replace inert Export button with controlled export flow (`exportState` + `handleExport` calling `renderReportHtml`/`triggerExport`); success shows filename briefly; error shows inline retry; button stays functional and accessible — AC 1, 4.
+- [x] `apps/web/tests/export.test.ts` — unit tests for `renderReportHtml` (HTML output, all-pass, no-impacts, happy-path sections) and `triggerExport` (Blob, click, revoke) — AC 1–5.
+- [x] `apps/web/tests/report-surface.test.tsx` — additions: export triggers download, success confirmation, error retry, no fetch, keyboard accessible — AC 4–5.
 
 **Acceptance Criteria:**
 - Given a report in Client View, when I click Export, then a standalone HTML file is downloaded containing the severity counts with labels, the priority list with all four AnalystImpact fields in Analyst-ranked order, the scan date, URL, and health label — with zero fetch/re-scan/AI calls.
@@ -80,7 +80,24 @@ context:
 
 ## Spec Change Log
 
-_(Append-only; populated by step-04 review loops.)_
+_(Append-only; populated by step-03 implementation notes and step-04 review loops.)_
+
+### 2026-08-17 — step-03 implementation + verification (step-04 pending)
+
+Implemented story 4.1. Added `apps/web/lib/export.ts` (pure `exportFilename` hostname/date derivation, `renderReportHtml` composing a standalone HTML document with embedded design-token CSS, severity metric block with business-phrase `aria-label`s, priority `<ol>` over `analyst_impacts` verbatim, healthy header, and escaped data text; `triggerExport` Blob → object URL → anchor download → revoke — no fetch, no API route, no new dependencies) and wired `ReportSurface.handleExport` with `exportState: "idle" | "success" | "error"`, a 2 s success confirmation showing the filename (with `max-w-[16rem] truncate` on narrow surfaces), and an inline error `role="alert"` with a Retry button that stays functional.
+
+Tests: `apps/web/tests/export.test.ts` (8) for `exportFilename`, `renderReportHtml` (happy path with all four AnalystImpact fields, all-pass, no-impacts, escaping, no-Developer-vocabulary), and `triggerExport` mechanics; `apps/web/tests/report-surface.test.tsx` additions for the export flow (EXPORT_A11Y native/labelled/focusable no-fetch, EXPORT_DOWNLOAD blob + anchor + revoke, EXPORT_SUCCESS 2 s reset + truncation, EXPORT_FAILURE inline alert + Retry recovery). The pre-existing "Export stays an inert placeholder" test was replaced (the button is no longer inert). The happy-path no-Developer-vocabulary fixture was corrected so AnalystImpact copy no longer embeds the violation id.
+
+Step-03 verification: all Tasks & AC met; **Matrix Test Audit passed** — every I/O matrix row covered by a passing test: HAPPY_PATH (export.test HAPPY_PATH + report-surface EXPORT_DOWNLOAD), ALL_PASS, NO_IMPACTS, BLOB_FAILURE (EXPORT_FAILURE), EXPORT_SUCCESS (EXPORT_SUCCESS reset + triggerExport), FILE_NAME (exportFilename), NO_RESCAN (NO_RESCAN + EXPORT_A11Y fetchMock), KEYBOARD (EXPORT_A11Y), NARROW_VIEWPORT (EXPORT_SUCCESS truncate + existing responsive test). Full suite: `pnpm --filter @a11yfix/web test` 180/180 (was 151), lint clean, `next build` succeeds (fixed a test mock type that only `tsc` — via `next build` — caught: the TypedBlob `vi.fn` now declares its `Blob` param so `mock.calls[0][0]` types as `Blob`). Next: step-04 review.
+
+### 2026-08-17 — code review loop 1 (dispatch subagent)
+
+Four-layer review (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) merged against `lib/export.ts`, `report-surface.tsx`, `export.test.ts`, `report-surface.test.tsx`. ~14 raw observations → triaged to 2 low patches; the remainder dismissed as noise or defensively covered (escaping, hostname/date fallbacks, priority-list/health register matching the Client View fold, happy/all-pass/no-impacts regime coverage, pre-existing NO_RESCAN test incidentally landing in the error state is test-only and not a product defect).
+
+- [x] [Review][Patch] P-1 — `handleExport` error path leaves the prior success-reset timer armed, so a success → (<2 s) → failure sequence clears the new error `role="alert"` early (weakens AC4 "error shows inline message"). [`apps/web/components/report-surface.tsx:89`]
+- [x] [Review][Patch] P-2 — `triggerExport` leaks the object URL if anything after `createObjectURL` throws (e.g. a blocked `anchor.click()`), because `URL.revokeObjectURL` is not in a `finally`; the surface catch then loses the URL. [`apps/web/lib/export.ts:240`]
+
+**Resolution:** loop review passed with patches applied (no revert). `review_loop_iteration` → 1. Re-engaged implementation subagent applied P-1 (clear stale timer in catch) and P-2 (wrap revoke in finally) plus pinning tests (EXPORT_ERROR_NOT_OVERWRITTEN, revoke-on-throw). Full verification re-run: `pnpm --filter @a11yfix/web test` 182/182 (was 180), lint clean, build OK. Story status: done.
 
 ## Design Notes
 

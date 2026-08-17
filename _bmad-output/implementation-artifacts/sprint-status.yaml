@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 08-13-2026
-last_updated: 08-20-2026
+last_updated: 08-17-2026
 project: a11yfix-engine
 project_key: NOKEY
 tracking_system: file-system
@@ -55,6 +55,6 @@ development_status:
   epic-3-retrospective: optional
 
   epic-4: in-progress
-  4-1-export-the-audit-report-as-a-diagnostic-report: ready-for-dev
+  4-1-export-the-audit-report-as-a-diagnostic-report: done
   4-2-include-broken-experience-proof-in-the-export: backlog
   epic-4-retrospective: optional
