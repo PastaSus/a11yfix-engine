@@ -1,13 +1,38 @@
-import type { Violation } from "@/lib/scan";
-import type { AnalystImpact, AuditReport } from "@/lib/translate/client";
+import type { Violation, ViolationNode } from "@/lib/scan";
+import type { AnalystImpact, ArchitectPatch, AuditReport } from "@/lib/translate/client";
 
-export function makeViolation(impact: Violation["impact"], id: string): Violation {
+export function makeViolation(
+  impact: Violation["impact"],
+  id: string,
+  nodes: ViolationNode[] = [],
+): Violation {
   return {
     id,
     impact,
     description: `Violation ${id}`,
     helpUrl: "https://dequeuniversity.com/rules/axe/4.11/button-name",
-    nodes: [],
+    nodes,
+  };
+}
+
+export function makePatch(
+  diff = `--- a/src/components/Card.tsx
++++ b/src/components/Card.tsx
+@@ -1 +1,4 @@
+-  <img className="h-40 w-full object-cover" />
++  <img
++    className="h-40 w-full object-cover"
++    alt="Product image"
++  />
+`,
+  fields: Partial<ArchitectPatch> = {},
+): ArchitectPatch {
+  return {
+    status: "proposed",
+    diff,
+    rationale: "Adds descriptive alt text to product images, addressing violation v-1 (WCAG 1.1.1).",
+    wcag_rule: "WCAG 1.1.1",
+    ...fields,
   };
 }
 
@@ -28,6 +53,7 @@ export function makeImpact(
 export function makeReport(
   violations: Violation[],
   analystImpacts: AnalystImpact[] = [],
+  architectPatches: ArchitectPatch[] = [],
 ): AuditReport {
   return {
     schemaVersion: "1.0.0",
@@ -37,6 +63,6 @@ export function makeReport(
     vitals: { lcp: 1200, inp: null, cls: 0.1 },
     timestamp: "2026-08-15T12:30:00.000Z",
     analyst_impacts: analystImpacts,
-    architect_patches: [],
+    architect_patches: architectPatches,
   };
 }

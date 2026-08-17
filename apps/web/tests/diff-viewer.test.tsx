@@ -20,7 +20,7 @@ const PATCH: ArchitectPatch = {
   status: "proposed",
   diff: `--- a/src/components/Card.tsx
 +++ b/src/components/Card.tsx
-@@ -1,6 +1,7 @@
+@@ -1 +1,4 @@
 -  <img className="h-40 w-full object-cover" />
 +  <img
 +    className="h-40 w-full object-cover"

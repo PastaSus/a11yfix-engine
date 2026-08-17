@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { AudienceToggle, persistAudience, type Audience } from "@/components/audience-toggle";
 import { ClientView } from "@/components/client-view";
+import { DeveloperView } from "@/components/developer-view";
 import {
   TIER_CHIP,
   TIER_LABELS,
@@ -60,6 +61,15 @@ export function ReportSurface({ report }: { report: AuditReport }) {
     persistAudience("developer");
     setAudience("developer");
   }
+
+  // Each view-fix press must move focus exactly once. The developer view
+  // reports back (via onPendingConsumed) once it has run its scroll+focus
+  // move, and that report clears the pending id here — so a later manual
+  // Client → Developer toggle has no stale id left to re-focus, but a fresh
+  // press on the same row re-arms the move because the id was cleared.
+  const handlePendingConsumed = useCallback(() => {
+    setPendingViewFix(null);
+  }, []);
 
   return (
     <section
@@ -119,33 +129,12 @@ export function ReportSurface({ report }: { report: AuditReport }) {
         {audience === "client" ? (
           <ClientView report={report} onViewFix={handleViewFix} />
         ) : (
-          <DeveloperView />
+          <DeveloperView
+            report={report}
+            pendingViewFix={pendingViewFix}
+            onPendingConsumed={handlePendingConsumed}
+          />
         )}
-      </div>
-    </section>
-  );
-}
-
-function DeveloperView() {
-  return (
-    <section aria-label="Developer view" className="grid gap-4 pt-6 md:grid-cols-12">
-      <div className="rounded-md border border-outline bg-surface-container p-4 md:col-span-12">
-        <h3 className="text-sm font-semibold">Violations</h3>
-        <p className="mt-1 text-sm text-on-surface-variant">
-          Rule-by-rule violations with affected nodes land here in a later release.
-        </p>
-      </div>
-      <div className="rounded-md border border-outline bg-surface-container p-4 md:col-span-6">
-        <h3 className="text-sm font-semibold">Core Web Vitals</h3>
-        <p className="mt-1 text-sm text-on-surface-variant">
-          LCP, INP, and CLS metrics land here in a later release.
-        </p>
-      </div>
-      <div className="rounded-md border border-outline bg-surface-container p-4 md:col-span-6">
-        <h3 className="text-sm font-semibold">Proposed fixes</h3>
-        <p className="mt-1 text-sm text-on-surface-variant">
-          Generated patches and diffs land here in a later release.
-        </p>
       </div>
     </section>
   );

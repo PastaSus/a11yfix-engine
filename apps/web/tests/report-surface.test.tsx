@@ -4,12 +4,22 @@ import { ReportSurface } from "@/components/report-surface";
 import { AUDIENCE_STORAGE_KEY } from "@/components/audience-toggle";
 import { severityTier } from "@/lib/severity";
 import type { Violation } from "@/lib/scan";
-import { makeImpact, makeReport, makeViolation } from "@/tests/fixtures";
+import { makeImpact, makePatch, makeReport, makeViolation } from "@/tests/fixtures";
+
+const NATIVE_SCROLL_INTO_VIEW = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  "scrollIntoView",
+);
 
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
   vi.unstubAllGlobals();
+  if (NATIVE_SCROLL_INTO_VIEW) {
+    Object.defineProperty(Element.prototype, "scrollIntoView", NATIVE_SCROLL_INTO_VIEW);
+  } else {
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+  }
 });
 
 const EMPTY_REPORT = makeReport([]);
@@ -129,11 +139,74 @@ describe("ReportSurface", () => {
     expect(screen.getByRole("button", { name: "Developer" }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("VIEW_FIX_SEAM: a view-fix press retains that specific violation_id in component state", () => {
+  it("VIEW_FIX_SEAM: the pending id is consumed once and then cleared from the surface state", () => {
     const report = makeReport([makeViolation("critical", "v1")], [makeImpact("v1")]);
     const { container } = render(<ReportSurface report={report} />);
     fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
-    expect(container.querySelector("[data-pending-view-fix='v1']")).not.toBeNull();
+    expect(container.querySelector("[data-pending-view-fix]")).toBeNull();
+  });
+
+  it("DEVELOPER_VIEW: toggling to Developer renders the real Developer View content", () => {
+    const report = makeReport(
+      [makeViolation("critical", "v1"), makeViolation("moderate", "v2")],
+      [],
+      [makePatch()],
+    );
+    render(<ReportSurface report={report} />);
+    fireEvent.click(screen.getByRole("button", { name: "Developer" }));
+    expect(screen.getByRole("heading", { name: "Violations" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Core Web Vitals" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Proposed fixes" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Copy diff" })).not.toBeNull();
+    expect(screen.getByText("WCAG 1.1.1")).not.toBeNull();
+  });
+
+  it("VIEW_FIX_SWITCH_FOCUS: a view-fix press switches audience and focuses the matching Developer row", () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: scrollIntoView,
+    });
+    const report = makeReport([makeViolation("critical", "v1")], [makeImpact("v1")]);
+    const { container } = render(<ReportSurface report={report} />);
+    fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
+
+    const row = container.querySelector("[data-violation-row='v1']");
+    expect(row).not.toBeNull();
+    expect(document.activeElement).toBe(row);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "instant", block: "nearest" });
+  });
+
+  it("VIEW_FIX_NO_STALE_FOCUS: a manual Client → Developer toggle after a view-fix press never re-scrolls or re-focuses", () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: scrollIntoView,
+    });
+    const report = makeReport([makeViolation("critical", "v1")], [makeImpact("v1")]);
+    const { container } = render(<ReportSurface report={report} />);
+
+    // The one user-initiated focus move: the view-fix press itself.
+    fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(document.activeElement?.getAttribute("data-violation-row")).toBe("v1");
+
+    // Manually bounce Client → Developer; no stale id may drive a second move.
+    fireEvent.click(screen.getByRole("button", { name: "Client" }));
+    fireEvent.click(screen.getByRole("button", { name: "Developer" }));
+
+    const row = container.querySelector("[data-violation-row='v1']");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(row);
+
+    // But a genuine second view-fix press on the same violation still focuses it.
+    fireEvent.click(screen.getByRole("button", { name: "Client" }));
+    fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(document.activeElement?.getAttribute("data-violation-row")).toBe("v1");
   });
 
   it("shared countPhrase: the metric figure label matches the health chip phrase for the same report", () => {
