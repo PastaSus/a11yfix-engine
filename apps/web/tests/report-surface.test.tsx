@@ -1,38 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { ReportSurface } from "@/components/report-surface";
+import { AUDIENCE_STORAGE_KEY } from "@/components/audience-toggle";
 import { severityTier } from "@/lib/severity";
 import type { Violation } from "@/lib/scan";
-import type { AuditReport } from "@/lib/translate/client";
+import { makeImpact, makeReport, makeViolation } from "@/tests/fixtures";
 
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
   vi.unstubAllGlobals();
 });
-
-function makeViolation(impact: Violation["impact"], id: string): Violation {
-  return {
-    id,
-    impact,
-    description: `Violation ${id}`,
-    helpUrl: null,
-    nodes: [],
-  };
-}
-
-function makeReport(violations: Violation[]): AuditReport {
-  return {
-    schemaVersion: "1.0.0",
-    scanId: "01J123456789ABCDEFGHJKLMNP",
-    url: "https://example.com",
-    violations,
-    vitals: { lcp: 1200, inp: null, cls: 0.1 },
-    timestamp: "2026-08-15T12:30:00.000Z",
-    analyst_impacts: [],
-    architect_patches: [],
-  };
-}
 
 const EMPTY_REPORT = makeReport([]);
 
@@ -124,12 +102,51 @@ describe("ReportSurface", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("renders the Client placeholder view by default and switches to Developer instantly", () => {
+  it("renders the Client view by default and switches to Developer instantly", () => {
     render(<ReportSurface report={EMPTY_REPORT} />);
     expect(screen.getByLabelText("Client view")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Developer" }));
     expect(screen.getByLabelText("Developer view")).not.toBeNull();
     expect(screen.queryByLabelText("Client view")).toBeNull();
+  });
+
+  it("VIEW_FIX_TOGGLE: a view-fix press announces the Developer option active and persists to sessionStorage", () => {
+    const report = makeReport([makeViolation("critical", "v1")], [makeImpact("v1")]);
+    render(<ReportSurface report={report} />);
+    fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
+    expect(screen.getByRole("button", { name: "Developer" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByLabelText("Developer view")).not.toBeNull();
+    expect(window.sessionStorage.getItem(AUDIENCE_STORAGE_KEY)).toBe("developer");
+  });
+
+  it("VIEW_FIX_STICKY: a view-fix-presumed Developer choice survives a remount exactly like a toggle press", () => {
+    const report = makeReport([makeViolation("critical", "v1")], [makeImpact("v1")]);
+    render(<ReportSurface report={report} />);
+    fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
+    cleanup();
+    render(<ReportSurface report={report} />);
+    expect(screen.getByLabelText("Developer view")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Developer" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("VIEW_FIX_SEAM: a view-fix press retains that specific violation_id in component state", () => {
+    const report = makeReport([makeViolation("critical", "v1")], [makeImpact("v1")]);
+    const { container } = render(<ReportSurface report={report} />);
+    fireEvent.click(screen.getByRole("button", { name: "View fix: Human problem for v1." }));
+    expect(container.querySelector("[data-pending-view-fix='v1']")).not.toBeNull();
+  });
+
+  it("shared countPhrase: the metric figure label matches the health chip phrase for the same report", () => {
+    const report = makeReport(
+      [
+        makeViolation("critical", "v1"),
+        makeViolation("serious", "v2"),
+      ],
+      [makeImpact("v1"), makeImpact("v2")],
+    );
+    render(<ReportSurface report={report} />);
+    expect(screen.getByText("2 critical issues")).not.toBeNull();
+    expect(screen.getByRole("group", { name: "2 critical issues" })).not.toBeNull();
   });
 
   it("severity is never color-only: counts and health carry explicit text labels", () => {

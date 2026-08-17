@@ -1,27 +1,17 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { AudienceToggle, type Audience } from "@/components/audience-toggle";
-import { severityTier, type SeverityTier } from "@/lib/severity";
+import { AudienceToggle, persistAudience, type Audience } from "@/components/audience-toggle";
+import { ClientView } from "@/components/client-view";
+import {
+  TIER_CHIP,
+  TIER_LABELS,
+  TIER_ORDER,
+  countPhrase,
+  countTiers,
+  type TierCounts,
+} from "@/lib/severity";
 import type { AuditReport } from "@/lib/translate/client";
-
-type TierCounts = Record<SeverityTier, number>;
-
-const EMPTY_COUNTS: TierCounts = { critical: 0, moderate: 0, minor: 0 };
-
-const TIER_ORDER: SeverityTier[] = ["critical", "moderate", "minor"];
-
-const TIER_LABELS: Record<SeverityTier, string> = {
-  critical: "Critical",
-  moderate: "Moderate",
-  minor: "Minor",
-};
-
-const COUNT_CHIP: Record<SeverityTier, string> = {
-  critical: "bg-critical-container text-on-critical-container",
-  moderate: "bg-moderate-container text-on-moderate-container",
-  minor: "bg-minor-container text-on-minor-container",
-};
 
 type HealthTone = "critical" | "moderate" | "conforming";
 
@@ -31,20 +21,9 @@ const HEALTH_CHIP: Record<HealthTone, string> = {
   conforming: "bg-conforming-container text-on-conforming-container",
 };
 
-function countTiers(violations: AuditReport["violations"]): TierCounts {
-  const counts: TierCounts = { ...EMPTY_COUNTS };
-  for (const violation of violations) {
-    counts[severityTier(violation.impact)] += 1;
-  }
-  return counts;
-}
-
 function healthFor(counts: TierCounts): { label: string; tone: HealthTone } {
   if (counts.critical > 0) {
-    return {
-      label: `${counts.critical} critical issue${counts.critical === 1 ? "" : "s"}`,
-      tone: "critical",
-    };
+    return { label: countPhrase(counts.critical, "critical"), tone: "critical" };
   }
   if (counts.moderate > 0) {
     return {
@@ -71,12 +50,23 @@ function formatScanDate(timestamp: string): string {
 
 export function ReportSurface({ report }: { report: AuditReport }) {
   const [audience, setAudience] = useState<Audience>("client");
+  const [pendingViewFix, setPendingViewFix] = useState<string | null>(null);
   const titleId = useId();
   const counts = useMemo(() => countTiers(report.violations), [report.violations]);
   const health = healthFor(counts);
 
+  function handleViewFix(violationId: string) {
+    setPendingViewFix(violationId);
+    persistAudience("developer");
+    setAudience("developer");
+  }
+
   return (
-    <section aria-labelledby={titleId} className="bg-surface text-on-surface">
+    <section
+      aria-labelledby={titleId}
+      data-pending-view-fix={pendingViewFix ?? undefined}
+      className="bg-surface text-on-surface"
+    >
       <div className="mx-auto w-full max-w-report px-4 py-6 sm:px-6">
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-outline pb-4">
           <div className="min-w-0">
@@ -111,7 +101,7 @@ export function ReportSurface({ report }: { report: AuditReport }) {
           {TIER_ORDER.map((tier) => (
             <span
               key={tier}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${COUNT_CHIP[tier]}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${TIER_CHIP[tier]}`}
             >
               <span className="text-lg font-semibold tabular-nums leading-none">
                 {counts[tier]}
@@ -126,26 +116,11 @@ export function ReportSurface({ report }: { report: AuditReport }) {
           <AudienceToggle value={audience} onChange={setAudience} />
         </div>
 
-        {audience === "client" ? <ClientView /> : <DeveloperView />}
-      </div>
-    </section>
-  );
-}
-
-function ClientView() {
-  return (
-    <section aria-label="Client view" className="grid gap-6 pt-6 md:grid-cols-12">
-      <div className="rounded-md border border-outline bg-surface-container p-6 md:col-span-7">
-        <h3 className="text-lg font-semibold">Executive summary</h3>
-        <p className="mt-2 text-sm text-on-surface-variant">
-          An AI-written, business-readable summary of this audit lands here in a later release.
-        </p>
-      </div>
-      <div className="rounded-md border border-outline bg-surface-container p-6 md:col-span-5">
-        <h3 className="text-lg font-semibold">Priority issues</h3>
-        <p className="mt-2 text-sm text-on-surface-variant">
-          A prioritized list of the issues that matter most to customers and conversion lands here in a later release.
-        </p>
+        {audience === "client" ? (
+          <ClientView report={report} onViewFix={handleViewFix} />
+        ) : (
+          <DeveloperView />
+        )}
       </div>
     </section>
   );

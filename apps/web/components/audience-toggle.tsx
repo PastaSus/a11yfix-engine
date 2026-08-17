@@ -26,7 +26,7 @@ function readStoredAudience(): Audience | null {
   }
 }
 
-function persistAudience(audience: Audience): void {
+export function persistAudience(audience: Audience): void {
   try {
     sessionStorage.setItem(AUDIENCE_STORAGE_KEY, audience);
   } catch {

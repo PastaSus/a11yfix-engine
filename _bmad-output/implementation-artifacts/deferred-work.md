@@ -97,3 +97,12 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 
 - The `AudienceToggle` restore effect is keyed on `onChange` (`apps/web/components/audience-toggle.tsx:25-30`); an unstable callback from a future consumer would re-run the storage restore on every render and could clobber a fresh user choice. Latent today (ReportSurface passes the stable `setAudience`); document the "onChange must be stable" contract or switch to a mount-once restore when the surface gets wired to a route.
 - The audience storage key `a11yfix:audience` is global to the session; once more than one report surface can exist in a session, toggling one silently overrides the other's on remount. Scope the key per report/scanId at wiring time.
+
+## Deferred from: code review of spec-3-2 (2026-08-17, loop 1)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md`
+  summary: Focus drops to `<body>` after a "view fix" press because `ClientView` unmounts on the audience switch; keyboard/SR users lose their place.
+  evidence: Hunted in review loop 1. The spec bans auto-scroll, not intentional focus hand-off, but the sensible focus target is the Developer View's content, which only exists in 3.3's real rows — wire a focus move when 3.3 renders the Developer View.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md`
+  summary: `timestamp` is optional in `contracts/audit-report.schema.json` but required in the web `AuditReport` TS type, so a null/absent timestamp could reach `formatScanDate` and render "Jan 1, 1970".
+  evidence: Pre-existing schema↔type drift surfaced while tracing verification; `formatScanDate(null)` coerces to epoch and `Number.isNaN` misses it. Belongs with the deferred `@a11yfix/contracts` type-generation/schema-validation item.
