@@ -42,19 +42,19 @@ development_status:
   1-4-submit-a-scan-from-the-web-and-watch-progress: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
+  epic-2: done
   2-1-translate-violations-into-business-impact-analyst-persona: done
   2-2-generate-proposed-react-tailwind-patches-architect-persona: done
   2-3-render-patches-as-reviewable-diffs: done
   epic-2-retrospective: optional
 
-  epic-3: in-progress
+  epic-3: done
   3-1-establish-the-design-foundation-and-report-surface: done
   3-2-render-the-client-view-business-summary: done
-  3-3-render-the-developer-view-technical-detail: review
+  3-3-render-the-developer-view-technical-detail: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-export-the-audit-report-as-a-diagnostic-report: backlog
+  epic-4: in-progress
+  4-1-export-the-audit-report-as-a-diagnostic-report: ready-for-dev
   4-2-include-broken-experience-proof-in-the-export: backlog
   epic-4-retrospective: optional
