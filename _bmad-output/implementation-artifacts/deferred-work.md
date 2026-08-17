@@ -86,3 +86,23 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - Architect diff validation accepts add-only or delete-only unified diffs (rejects both), and does not require `---/+++`/`@@` headers — a valid add-only patch fails typed today. Deciding the exact diff contract (headers mandatory vs content-lines-only) belongs with story 2.3's renderer, which is the actual diff consumer.
 - `chat()` up-front sends no `Accept` header so some providers may stream SSE; the client always `res.json()`-parses, so an SSE body degrades to a typed `translate_error`. Add `Accept: application/json` (or stream support) when streaming is actually wanted.
 - Persona boilerplate is duplicated across analyst/architect (`TranslateError` catch-normalization, start/end/error log blocks, `deps` defaults). A shared `runTranslate`-style wrapper can deduplicate when a third persona or the route wiring lands.
+
+## Deferred from: planning spec-3-1 (2026-08-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-establish-the-design-foundation-and-report-surface.md`
+  summary: No Epic 3 story wires the pipeline scan→translate→report or mounts the report surface onto a route — 3.1/3.2/3.3 all build standalone components fed by an `AuditReport` prop, so the app still cannot produce or reach a live AuditReport end-to-end.
+  evidence: Story 3.1 scopes the Present surface as a standalone module consistent with the 2.1–2.3 seam; producing a real AuditReport needs the translate route + provider wiring that Epics 2–3 defer. Surface mounting becomes viable once personas are wired; revisit as a dedicated wiring story before the report flow is demoable.
+
+## Deferred from: code review of spec-3-1 (2026-08-16)
+
+- The `AudienceToggle` restore effect is keyed on `onChange` (`apps/web/components/audience-toggle.tsx:25-30`); an unstable callback from a future consumer would re-run the storage restore on every render and could clobber a fresh user choice. Latent today (ReportSurface passes the stable `setAudience`); document the "onChange must be stable" contract or switch to a mount-once restore when the surface gets wired to a route.
+- The audience storage key `a11yfix:audience` is global to the session; once more than one report surface can exist in a session, toggling one silently overrides the other's on remount. Scope the key per report/scanId at wiring time.
+
+## Deferred from: code review of spec-3-2 (2026-08-17, loop 1)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md`
+  summary: Focus drops to `<body>` after a "view fix" press because `ClientView` unmounts on the audience switch; keyboard/SR users lose their place.
+  evidence: Hunted in review loop 1. The spec bans auto-scroll, not intentional focus hand-off, but the sensible focus target is the Developer View's content, which only exists in 3.3's real rows — wire a focus move when 3.3 renders the Developer View.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md`
+  summary: `timestamp` is optional in `contracts/audit-report.schema.json` but required in the web `AuditReport` TS type, so a null/absent timestamp could reach `formatScanDate` and render "Jan 1, 1970".
+  evidence: Pre-existing schema↔type drift surfaced while tracing verification; `formatScanDate(null)` coerces to epoch and `Number.isNaN` misses it. Belongs with the deferred `@a11yfix/contracts` type-generation/schema-validation item.
