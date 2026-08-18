@@ -121,13 +121,14 @@ export function DeveloperView({
 
   return (
     <section aria-label="Developer view" className="grid gap-6 pt-6">
-      <div className="rounded-md border border-outline bg-surface">
-        <h3 className="px-4 pb-2 pt-4 text-lg font-semibold">Violations</h3>
-        <div className="overflow-x-auto pb-2">
-          <table
-            aria-label="Violations"
-            className="w-full min-w-[520px] border-collapse text-sm"
-          >
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="rounded-md border border-outline bg-surface">
+          <h3 className="px-4 pb-2 pt-4 text-lg font-semibold">Violations</h3>
+          <div className="overflow-x-auto pb-2">
+            <table
+              aria-label="Violations"
+              className="w-full min-w-[640px] border-collapse text-sm"
+            >
             <thead>
               <tr className="border-b border-outline bg-surface-container text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
                 <th scope="col" className="px-3 text-left">
@@ -163,12 +164,17 @@ export function DeveloperView({
                     <SortIndicator active={sort.key === "nodes"} direction={sort.direction} />
                   </button>
                 </th>
+                <th scope="col" className="px-3 text-left">
+                  <span className="inline-flex h-11 items-center px-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+                    Affected node
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-sm text-on-surface-variant">
+                  <td colSpan={5} className="px-3 py-6 text-sm text-on-surface-variant">
                     No violations detected
                   </td>
                 </tr>
@@ -214,22 +220,31 @@ export function DeveloperView({
                           </button>
                         </td>
                         <td className="px-3 py-0">
-                          <span className="inline-flex items-center rounded-full border border-outline bg-surface-container-high px-2.5 py-0.5 font-mono text-xs">
+                          <span className="inline-flex items-center whitespace-nowrap rounded-full border border-outline bg-surface-container-high px-2.5 py-0.5 font-mono text-xs">
                             {violation.id}
                           </span>
                         </td>
                         <td className="px-3 py-0">
                           <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TIER_CHIP[tier]}`}
+                            className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${TIER_CHIP[tier]}`}
                           >
                             {TIER_LABELS[tier]}
                           </span>
                         </td>
                         <td className="px-3 py-0 tabular-nums">{violation.nodes.length}</td>
+                        <td className="px-3 py-0">
+                          {violation.nodes.length === 0 ? (
+                            <span className="text-sm text-on-surface-variant">{"\u2014"}</span>
+                          ) : (
+                            <span className="inline-block max-w-[16rem] truncate align-middle font-mono text-xs text-on-surface-variant">
+                              {violation.nodes[0].nodeId}
+                            </span>
+                          )}
+                        </td>
                       </tr>
                       {isExpanded && (
                         <tr className="border-b border-outline/60 last:border-b-0">
-                          <td colSpan={4} className="bg-surface-container/50 px-3 py-3">
+                          <td colSpan={5} className="bg-surface-container/50 px-3 py-3">
                             <div id={detailId}>
                               <p className="text-sm">{violation.description}</p>
                               {violation.helpUrl && (
@@ -253,59 +268,62 @@ export function DeveloperView({
         </div>
       </div>
 
-      <div className="rounded-md border border-outline bg-surface-container p-4">
-        <h3 className="text-lg font-semibold">Core Web Vitals</h3>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          {VITALS_METRICS.map(({ key, label, unit }) => {
-            const value = report.vitals[key];
-            const measured = value !== null;
-            return (
-              <div
-                key={key}
-                role="group"
-                aria-label={
-                  measured ? `${label}: ${value}${unit ? ` ${unit}` : ""}` : `${label}: not measured`
-                }
-                className="rounded-lg border border-outline bg-surface p-4"
-              >
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-                  {label}
-                </h4>
-                <p className="mt-1 flex items-baseline gap-1.5">
-                  <span aria-hidden="true" className="text-3xl font-bold leading-none tabular-nums">
-                    {measured ? value : "\u2014"}
-                  </span>
-                  {unit && (
-                    <span aria-hidden="true" className="text-sm text-on-surface-variant">
-                      {unit}
+      <div className="flex flex-col gap-6">
+        <div className="rounded-md border border-outline bg-surface-container p-4">
+          <h3 className="text-lg font-semibold">Core Web Vitals</h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {VITALS_METRICS.map(({ key, label, unit }) => {
+              const value = report.vitals[key];
+              const measured = value !== null;
+              return (
+                <div
+                  key={key}
+                  role="group"
+                  aria-label={
+                    measured ? `${label}: ${value}${unit ? ` ${unit}` : ""}` : `${label}: not measured`
+                  }
+                  className="rounded-lg border border-outline bg-surface p-4"
+                >
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+                    {label}
+                  </h4>
+                  <p className="mt-1 flex items-baseline gap-1.5">
+                    <span aria-hidden="true" className="text-3xl font-bold leading-none tabular-nums">
+                      {measured ? value : "\u2014"}
                     </span>
-                  )}
-                </p>
-              </div>
-            );
-          })}
+                    {unit && (
+                      <span aria-hidden="true" className="text-sm text-on-surface-variant">
+                        {unit}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-md border border-outline bg-surface p-4">
+          <h3 className="text-lg font-semibold">Proposed fixes</h3>
+          {report.architect_patches.length === 0 ? (
+            <p className="mt-3 text-sm text-on-surface-variant">No generated patches</p>
+          ) : (
+            <div className="mt-4 grid gap-6">
+              {report.architect_patches.map((patch, index) => (
+                <article key={index} className="grid gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border border-outline bg-surface-container px-2.5 py-0.5 font-mono text-xs font-medium">
+                      {patch.wcag_rule}
+                    </span>
+                  </div>
+                  <p className="text-sm text-on-surface-variant">{patch.rationale}</p>
+                  <DiffViewer patch={patch} />
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="rounded-md border border-outline bg-surface p-4">
-        <h3 className="text-lg font-semibold">Proposed fixes</h3>
-        {report.architect_patches.length === 0 ? (
-          <p className="mt-3 text-sm text-on-surface-variant">No generated patches</p>
-        ) : (
-          <div className="mt-4 grid gap-6">
-            {report.architect_patches.map((patch, index) => (
-              <article key={index} className="grid gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full border border-outline bg-surface-container px-2.5 py-0.5 font-mono text-xs font-medium">
-                    {patch.wcag_rule}
-                  </span>
-                </div>
-                <p className="text-sm text-on-surface-variant">{patch.rationale}</p>
-                <DiffViewer patch={patch} />
-              </article>
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );
