@@ -116,15 +116,15 @@ export function ReportSurface({ report }: { report: AuditReport }) {
     <section
       aria-labelledby={titleId}
       data-pending-view-fix={pendingViewFix ?? undefined}
-      className="bg-background text-on-surface"
+      className="bg-background px-4 pb-12 pt-2 text-on-surface sm:px-6"
     >
-      <div className="mx-auto w-full max-w-report rounded-lg border border-outline bg-surface px-4 py-6 shadow-elevated sm:px-6">
-        <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-outline pb-4">
+      <div className="mx-auto w-full max-w-report rounded-lg border border-outline bg-surface px-5 py-7 shadow-elevated sm:px-8">
+        <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-outline pb-5">
           <div className="min-w-0">
             <h2 id={titleId} className="break-all text-2xl font-semibold leading-tight">
               {report.url}
             </h2>
-            <p className="mt-1 text-sm text-on-surface-variant">
+            <p className="mt-1.5 text-sm text-on-surface-variant">
               <span className="font-medium text-on-surface">Scanned</span>{" "}
               {formatScanDate(report.timestamp)}
             </p>
@@ -167,7 +167,7 @@ export function ReportSurface({ report }: { report: AuditReport }) {
         <div
           role="group"
           aria-label="Severity counts"
-          className="mt-4 flex flex-wrap items-center gap-2"
+          className="mt-5 flex flex-wrap items-center gap-2"
         >
           {TIER_ORDER.map((tier) => (
             <span
