@@ -406,7 +406,7 @@ describe("ReportSurface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export report" }));
 
     expect(screen.getByRole("alert")).not.toBeNull();
-    expect(screen.getByText("Export failed — please try again")).not.toBeNull();
+    expect(screen.getByText("Export failed. Please try again")).not.toBeNull();
     const retry = screen.getByRole("button", { name: "Retry" });
     expect(retry).not.toBeNull();
     // The original Export button never dead-ends while in the error state.

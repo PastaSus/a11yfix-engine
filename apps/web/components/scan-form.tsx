@@ -10,9 +10,9 @@ import { submitTranslate } from "@/lib/submit-translate";
 import { validateScanUrl } from "@/lib/validate-scan-url";
 import type { AuditReport } from "@/lib/translate/client";
 
-const EMPTY_STATE_COPY = "No scans yet — paste a URL to run your first audit.";
-const PAUSED_COPY = "Translation is waiting on a free-tier limit — retrying.";
-const GENERIC_FAILURE_HINT = "Something went wrong while scanning — try again in a moment.";
+const EMPTY_STATE_COPY = "Run your first audit. Darkhouse will check it for accessibility and core web vitals, then walk you through the fixes.";
+const PAUSED_COPY = "Translation is waiting on a free-tier limit. Retrying.";
+const GENERIC_FAILURE_HINT = "Something went wrong while scanning. Try again in a moment.";
 
 const STAGE_ANNOUNCEMENT: Record<StageName, string> = {
   scanning: "Scanning your site.",
@@ -29,12 +29,12 @@ type ScanState =
   | { stage: "paused" };
 
 const FAILURE_HINTS: Record<string, string> = {
-  unreachable: "We couldn't reach that site — it may be down, or the network is slow.",
-  timeout: "The scan timed out — the site may be too slow to respond.",
-  invalid_url: "That address looks invalid — check it and try again.",
+  unreachable: "We couldn't reach that site. It may be down, or the network is slow.",
+  timeout: "The scan timed out. The site may be too slow to respond.",
+  invalid_url: "That address looks invalid. Check it and try again.",
   insecure_url: "That address isn't a secure https:// URL.",
   scan_error: GENERIC_FAILURE_HINT,
-  translate_error: "The AI translation layer failed — try again in a moment.",
+  translate_error: "The AI translation layer failed. Try again in a moment.",
 };
 
 function failureHint(code: string): string {
@@ -42,17 +42,17 @@ function failureHint(code: string): string {
 }
 
 const INPUT_CLASSES =
-  "h-11 flex-1 rounded-md border border-outline bg-surface px-3 text-on-surface " +
+  "h-11 flex-1 rounded-sm border border-outline bg-surface px-3 text-on-surface " +
   "placeholder:text-on-surface-variant focus-visible:outline-2 focus-visible:outline-offset-2 " +
   "focus-visible:outline-primary";
 
 const BUTTON_CLASSES =
-  "h-11 rounded-md bg-primary px-5 text-sm font-semibold text-on-primary " +
+  "h-11 rounded-sm bg-primary px-5 text-sm font-semibold text-on-primary " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
   "disabled:opacity-50";
 
 const RETRY_CLASSES =
-  "mt-3 inline-flex h-11 items-center justify-center rounded-md border border-outline " +
+  "mt-3 inline-flex h-11 items-center justify-center rounded-sm border border-outline " +
   "px-5 text-sm font-semibold text-on-surface focus-visible:outline-2 " +
   "focus-visible:outline-offset-2 focus-visible:outline-primary";
 

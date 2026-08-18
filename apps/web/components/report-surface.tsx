@@ -116,9 +116,9 @@ export function ReportSurface({ report }: { report: AuditReport }) {
     <section
       aria-labelledby={titleId}
       data-pending-view-fix={pendingViewFix ?? undefined}
-      className="bg-surface text-on-surface"
+      className="bg-background text-on-surface"
     >
-      <div className="mx-auto w-full max-w-report px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-report rounded-lg border border-outline bg-surface px-4 py-6 shadow-elevated sm:px-6">
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-outline pb-4">
           <div className="min-w-0">
             <h2 id={titleId} className="break-all text-2xl font-semibold leading-tight">
@@ -138,7 +138,7 @@ export function ReportSurface({ report }: { report: AuditReport }) {
             <button
               type="button"
               onClick={handleExport}
-              className={`h-11 min-w-0 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              className={`h-11 min-w-0 rounded-sm border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 exportState === "success" ? "max-w-[16rem] truncate" : ""
               }`}
             >
@@ -152,11 +152,11 @@ export function ReportSurface({ report }: { report: AuditReport }) {
               role="alert"
               className="flex w-full flex-wrap items-center gap-3 rounded-md border border-error-container bg-error-container px-3 py-2 text-sm text-on-error-container"
             >
-              <span>Export failed — please try again</span>
+              <span>Export failed. Please try again</span>
               <button
                 type="button"
                 onClick={handleExport}
-                className="h-11 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="h-11 rounded-sm border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Retry
               </button>

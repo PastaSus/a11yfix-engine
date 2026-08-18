@@ -84,8 +84,9 @@ describe("renderReportHtml", () => {
     expect(html).toMatch(/<html lang="en">/);
     expect(html).toContain("<style>");
     expect(html).toContain(":root");
-    expect(html).toContain("https://fonts.googleapis.com/css2?family=Inter");
-    expect(html).toContain("family=JetBrains+Mono");
+    expect(html).toContain("https://fonts.googleapis.com/css2?family=Space+Grotesk");
+    expect(html).toContain("family=Geist");
+    expect(html).toContain("family=Geist+Mono");
     expect(html).toContain("</html>");
 
     // Severity metric block: business-phrase aria-labels, tinted tiles, tabular figures.
@@ -148,7 +149,7 @@ describe("renderReportHtml", () => {
     const report = makeReport([makeViolation("critical", "v-c1"), makeViolation("serious", "v-c2")], []);
     const html = renderReportHtml(report);
     expect(html).toContain('aria-label="2 critical issues"');
-    expect(html).toContain("Impact analysis unavailable — see the Developer view.");
+    expect(html).toContain("Impact analysis unavailable. Check the Developer view for the full report.");
     expect(html).not.toContain("No critical violations detected.");
     expect(html).not.toContain("<ol");
   });

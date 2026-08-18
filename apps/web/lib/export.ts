@@ -80,20 +80,20 @@ export function exportFilename(report: AuditReport): string {
 
 const EMBEDDED_CSS = `
 :root {
-  --surface: #f8fafc;
-  --surface-container: #f1f5f9;
-  --surface-container-high: #e2e8f0;
-  --on-surface: #0f172a;
-  --on-surface-variant: #475569;
-  --outline: #64748b;
-  --critical-container: #fee2e2;
-  --on-critical-container: #7f1d1d;
-  --moderate-container: #fef3c7;
-  --on-moderate-container: #78350f;
-  --minor-container: #e2e8f0;
-  --on-minor-container: #334155;
-  --conforming-container: #ccfbf1;
-  --on-conforming-container: #134e4a;
+  --surface: oklch(0.973 0.006 85);
+  --surface-container: oklch(0.952 0.008 85);
+  --surface-container-high: oklch(0.917 0.009 85);
+  --on-surface: oklch(0.235 0.018 85);
+  --on-surface-variant: oklch(0.46 0.015 85);
+  --outline: oklch(0.63 0.012 85);
+  --critical-container: oklch(0.93 0.03 27);
+  --on-critical-container: oklch(0.38 0.12 27);
+  --moderate-container: oklch(0.95 0.04 80);
+  --on-moderate-container: oklch(0.42 0.08 60);
+  --minor-container: oklch(0.91 0.009 85);
+  --on-minor-container: oklch(0.36 0.015 85);
+  --conforming-container: oklch(0.94 0.03 175);
+  --on-conforming-container: oklch(0.36 0.06 175);
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -101,10 +101,11 @@ body {
   margin: 0;
   background: var(--surface);
   color: var(--on-surface);
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Geist", sans-serif;
   font-size: 15px;
   line-height: 1.6;
 }
+h1, h2, h3 { font-family: "Space Grotesk", "Geist", sans-serif; }
 .report { max-width: 1040px; margin: 0 auto; padding: 24px 16px; }
 @media (min-width: 640px) { .report { padding: 24px 32px; } }
 .doc-header { border-bottom: 1px solid var(--outline); padding-bottom: 16px; }
@@ -162,7 +163,7 @@ dl.impact dt {
   letter-spacing: 0.04em;
 }
 dl.impact dd { margin: 2px 0 0; }
-.mono, code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+.mono, code { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
 .proof img {
   max-width: 100%;
   border-radius: 0.5rem;
@@ -246,7 +247,7 @@ export function renderReportHtml(report: AuditReport): string {
   if (!hasCritical) {
     priorityBody = `<p class="note">No critical violations detected. Check the Developer view for the full report.</p>`;
   } else if (!hasImpacts) {
-    priorityBody = `<p class="note">Impact analysis unavailable — see the Developer view.</p>`;
+    priorityBody = `<p class="note">Impact analysis unavailable. Check the Developer view for the full report.</p>`;
   } else {
     priorityBody = `<ol class="priority">\n${renderImpacts(report)}\n</ol>`;
   }
@@ -256,11 +257,11 @@ export function renderReportHtml(report: AuditReport): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Darkhouse — Diagnostic Report</title>
+    <title>Darkhouse Diagnostic Report</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap"
       rel="stylesheet"
     />
     <style>${EMBEDDED_CSS}
