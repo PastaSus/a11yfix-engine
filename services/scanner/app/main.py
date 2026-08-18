@@ -1,4 +1,4 @@
-"""FastAPI harness for the A11yFix scanner.
+"""FastAPI harness for the Darkhouse scanner.
 
 Stateless HTTP filter: `POST /scan` -> ScanResult envelope. Validates the URL
 (scheme, parseability) before any browser launch, harvests with Playwright +
@@ -27,7 +27,7 @@ CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "contracts"
 SCAN_RESULT_SCHEMA_PATH = CONTRACTS_DIR / "scan-result.schema.json"
 
 app = FastAPI(
-    title="A11yFix Scanner",
+    title="Darkhouse Scanner",
     description="Stateless harvest service: POST /scan runs axe-core via Playwright and returns a ScanResult envelope.",
     version="0.1.0",
 )

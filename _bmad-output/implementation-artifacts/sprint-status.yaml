@@ -30,7 +30,7 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 08-13-2026
 last_updated: 08-17-2026
-project: a11yfix-engine
+project: darkhouse
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts

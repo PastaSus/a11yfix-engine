@@ -37,7 +37,7 @@ SCAN_SLOT_TIMEOUT_MS = 30_000
 
 VITALS_INIT_SCRIPT = r"""
 (() => {
-  const vitals = window.__a11yfixVitals = { lcp: null, cls: null };
+  const vitals = window.__darkhouseVitals = { lcp: null, cls: null };
   try {
     new PerformanceObserver((list) => {
       const entries = list.getEntries();
@@ -119,7 +119,7 @@ def _vital_number(value: object) -> float | None:
 
 
 def collect_vitals(raw: dict[str, Any] | None) -> dict[str, Any]:
-    """Normalize the probe's `window.__a11yfixVitals` into the ScanResult shape.
+    """Normalize the probe's `window.__darkhouseVitals` into the ScanResult shape.
 
     Pure function (no browser I/O): takes the object already read from the page
     and returns `{ lcp, inp, cls }`. `lcp`/`cls` are numbers when measurable and
@@ -282,7 +282,7 @@ async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
 
                     violations = extract_violations(axe_results)
                     try:
-                        raw_vitals: dict[str, Any] = await page.evaluate("() => window.__a11yfixVitals")
+                        raw_vitals: dict[str, Any] = await page.evaluate("() => window.__darkhouseVitals")
                     except (PlaywrightError, PlaywrightTimeoutError):
                         raw_vitals = {}
                     vitals = collect_vitals(raw_vitals)

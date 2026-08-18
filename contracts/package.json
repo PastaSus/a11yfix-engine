@@ -1,5 +1,5 @@
 {
-  "name": "@a11yfix/contracts",
+  "name": "@darkhouse/contracts",
   "version": "0.1.0",
   "private": true,
   "main": "scan-result.schema.json",

@@ -310,7 +310,7 @@ describe("ReportSurface", () => {
     const anchor = anchorCall?.[0] as HTMLAnchorElement;
     expect(anchor).toBeDefined();
     expect(anchor.tagName).toBe("A");
-    expect(anchor.download).toBe("a11yfix-report-example-com-2026-08-15.html");
+    expect(anchor.download).toBe("darkhouse-report-example-com-2026-08-15.html");
     expect(anchor.href).toBe("blob:export-test");
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:export-test");
   });
@@ -325,7 +325,7 @@ describe("ReportSurface", () => {
         fireEvent.click(screen.getByRole("button", { name: "Export report" }));
       });
       const successButton = screen.getByRole("button", {
-        name: "Downloaded a11yfix-report-example-com-2026-08-15.html",
+        name: "Downloaded darkhouse-report-example-com-2026-08-15.html",
       });
       expect(successButton).not.toBeNull();
       // Long filenames truncate gracefully on narrow surfaces.
@@ -370,7 +370,7 @@ describe("ReportSurface", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(
       screen.getByRole("button", {
-        name: "Downloaded a11yfix-report-example-com-2026-08-15.html",
+        name: "Downloaded darkhouse-report-example-com-2026-08-15.html",
       }),
     ).not.toBeNull();
     expect(createObjectURL).toHaveBeenCalledTimes(2);
@@ -399,7 +399,7 @@ describe("ReportSurface", () => {
       });
       expect(
         screen.getByRole("button", {
-          name: "Downloaded a11yfix-report-example-com-2026-08-15.html",
+          name: "Downloaded darkhouse-report-example-com-2026-08-15.html",
         }),
       ).not.toBeNull();
 

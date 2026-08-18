@@ -353,8 +353,8 @@ describe("translateArchitect", () => {
 
     await translateArchitect(REPORT, { fetch: fake.fetch, now: () => times.shift() ?? 0 });
 
-    const startCall = logSpy.mock.calls.find((args) => args[0] === "[a11yfix] translate start");
-    const endCall = logSpy.mock.calls.find((args) => args[0] === "[a11yfix] translate end");
+    const startCall = logSpy.mock.calls.find((args) => args[0] === "[darkhouse] translate start");
+    const endCall = logSpy.mock.calls.find((args) => args[0] === "[darkhouse] translate end");
     expect(startCall?.[1]).toMatchObject({ scanId: REPORT.scanId });
     expect(endCall?.[1]).toMatchObject({ scanId: REPORT.scanId, durationMs: 50, architectPatches: 2 });
   });

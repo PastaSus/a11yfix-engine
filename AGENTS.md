@@ -11,7 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- bmad:context -->
 <!-- Verified 2026-08-15 against 48d5dc5. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
-## a11yfix-engine
+## darkhouse
 
 Automated web accessibility and performance remediation platform. Scans a public URL, produces structured accessibility violations + Core Web Vitals via Python harvest service, translates via AI personas (Epic 2, planned), and renders in a dual-audience Next.js dashboard. Monorepo: `apps/web` (Next.js 16 App Router), `services/scanner` (Python FastAPI + Playwright + axe-core), `contracts/` (shared JSON Schema). Planning artifacts live in `_bmad-output/`.
 
@@ -36,7 +36,7 @@ Automated web accessibility and performance remediation platform. Scans a public
 
 - Scanner tests require Chromium installed: `uv run playwright install chromium` (once per machine).
 - Run scanner tests from repo root: `uv run python -m pytest services/scanner/tests/ -v` — running from `services/scanner/` breaks module resolution.
-- Run web tests: `pnpm --filter @a11yfix/web test` (vitest, jsdom environment).
+- Run web tests: `pnpm --filter @darkhouse/web test` (vitest, jsdom environment).
 - Lint: `pnpm lint` runs ESLint with `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript` in `apps/web`.
 - Both services must run separately: scanner on `:8000` (`uv run uvicorn services.scanner.app.main:app --port 8000`), dashboard on `:3000` (`pnpm dev`).
 - `pnpm install` installs JS workspace deps; `uv sync` installs the Python environment — both are required after clone.

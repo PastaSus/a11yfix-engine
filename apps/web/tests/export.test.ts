@@ -46,14 +46,14 @@ const HAPPY_REPORT = makeReport(
 describe("exportFilename", () => {
   it("FILE_NAME: derives the hostname-slug and ISO date from the report", () => {
     expect(exportFilename(makeReport([]))).toBe(
-      "a11yfix-report-example-com-2026-08-15.html",
+      "darkhouse-report-example-com-2026-08-15.html",
     );
   });
 
   it("slugs multi-segment hostnames and ignores the path and port", () => {
     const report = { ...makeReport([]), url: "https://app.example.co.uk:8443/docs/index.html" };
     expect(exportFilename(report)).toBe(
-      "a11yfix-report-app-example-co-uk-2026-08-15.html",
+      "darkhouse-report-app-example-co-uk-2026-08-15.html",
     );
   });
 });
@@ -165,7 +165,7 @@ describe("triggerExport", () => {
     const createElement = vi.spyOn(document, "createElement");
     const appendChild = vi.spyOn(document.body, "appendChild");
     const html = "<!DOCTYPE html><html></html>";
-    const filename = "a11yfix-report-example-com-2026-08-15.html";
+    const filename = "darkhouse-report-example-com-2026-08-15.html";
 
     triggerExport(html, filename);
 
@@ -197,7 +197,7 @@ describe("triggerExport", () => {
     });
     const appendChild = vi.spyOn(document.body, "appendChild");
     const html = "<!DOCTYPE html><html></html>";
-    const filename = "a11yfix-report-example-com-2026-08-15.html";
+    const filename = "darkhouse-report-example-com-2026-08-15.html";
 
     expect(() => triggerExport(html, filename)).toThrow("click blocked");
     expect(createObjectURL).toHaveBeenCalledTimes(1);

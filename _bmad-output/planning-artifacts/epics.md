@@ -1,17 +1,17 @@
 ---
 stepsCompleted: [prerequisites-validated, requirements-extracted, template-initialized, requirements-confirmed, epics-approved, stories-generated, validation-complete]
 inputDocuments:
-  - _bmad-output/planning-artifacts/prds/prd-a11yfix-engine-2026-08-12/prd.md
-  - _bmad-output/planning-artifacts/architecture/architecture-a11yfix-engine-2026-08-12/ARCHITECTURE-SPINE.md
-  - _bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md
-  - _bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md
+  - _bmad-output/planning-artifacts/prds/prd-darkhouse-2026-08-12/prd.md
+  - _bmad-output/planning-artifacts/architecture/architecture-darkhouse-2026-08-12/ARCHITECTURE-SPINE.md
+  - _bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/DESIGN.md
+  - _bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md
 ---
 
-# a11yfix-engine - Epic Breakdown
+# darkhouse - Epic Breakdown
 
 ## Overview
 
-This document provides the complete epic and story breakdown for a11yfix-engine, decomposing the requirements from the PRD, UX Design, and Architecture requirements into implementable stories.
+This document provides the complete epic and story breakdown for darkhouse, decomposing the requirements from the PRD, UX Design, and Architecture requirements into implementable stories.
 
 ## Requirements Inventory
 

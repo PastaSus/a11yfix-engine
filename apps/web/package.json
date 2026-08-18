@@ -1,5 +1,5 @@
 {
-  "name": "@a11yfix/web",
+  "name": "@darkhouse/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@a11yfix/contracts": "workspace:*",
+    "@darkhouse/contracts": "workspace:*",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

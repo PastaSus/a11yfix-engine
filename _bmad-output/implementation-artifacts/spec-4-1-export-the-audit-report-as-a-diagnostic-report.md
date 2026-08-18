@@ -6,8 +6,8 @@ status: 'done'
 baseline_commit: 'ec7eec28f8a536647869c62b794e173dbe285a59'
 review_loop_iteration: 1
 context:
-  - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md'
-  - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md'
+  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/DESIGN.md'
+  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md'
   - '_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md'
   - '_bmad-output/implementation-artifacts/epic-3-context.md'
 ---
@@ -23,8 +23,8 @@ context:
 **Always:**
 - The export produces a self-contained HTML file: every style the rendered report needs is embedded in the file (no external stylesheets, no Tailwind build, no CDN fonts except Google Fonts for Inter/JetBrains Mono which are optional offline fallbacks). The file opens in any modern browser with no server.
 - The export function reads only the `AuditReport` already in component state — zero `fetch` calls, zero re-scans, zero AI calls. The "no dev server required" invariant holds.
-- The file name carries the domain and scan date for discoverability: `a11yfix-report-{hostname}-{YYYY-MM-DD}.html`.
-- Success state briefly shows the downloaded filename (e.g. "Downloaded a11yfix-report-example-com-2026-08-20.html") before resetting to the default "Export report" label — a quiet confirmation, not a toast.
+- The file name carries the domain and scan date for discoverability: `darkhouse-report-{hostname}-{YYYY-MM-DD}.html`.
+- Success state briefly shows the downloaded filename (e.g. "Downloaded darkhouse-report-example-com-2026-08-20.html") before resetting to the default "Export report" label — a quiet confirmation, not a toast.
 - Error state shows an inline error message with a retry button; the original Export button stays visible and functional (no modal, no dead end). "Never silently half-export" (UX-DR7/77).
 - The generated HTML mirrors the Client View's data register: severity counts with labels, priority list in Analyst-ranked order with all four `AnalystImpact` fields, no rule IDs or helpUrls (those are Developer View vocabulary). The export is the Client View as a file.
 - All interactive elements in the export flow meet the 3.1 accessibility floor: focusable, labelled, visible focus ring, keyboard-operable, ≥ 44px, no transitions (Reduce Motion).
@@ -45,12 +45,12 @@ context:
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| HAPPY_PATH | Report with violations, analyst_impacts, architect_patches, vitals populated | Clicking Export produces `a11yfix-report-{domain}-{date}.html` containing: severity counts with labels, priority list with all four AnalystImpact fields, scan date, URL, health label; button briefly shows "Downloaded …" then resets | N/A |
+| HAPPY_PATH | Report with violations, analyst_impacts, architect_patches, vitals populated | Clicking Export produces `darkhouse-report-{domain}-{date}.html` containing: severity counts with labels, priority list with all four AnalystImpact fields, scan date, URL, health label; button briefly shows "Downloaded …" then resets | N/A |
 | ALL_PASS | Report with zero violations, `analyst_impacts: []` | Export produces a valid file with 0/0/0 severity counts, restrained "No critical violations" register, scan metadata; no priority list section (empty array) | N/A |
 | NO_IMPACTS | Report with critical violations but `analyst_impacts: []` (translate not run) | Export produces a valid file with severity counts, "Impact analysis unavailable" note, no priority list; no fabricated impacts | N/A |
 | BLOB_FAILURE | Blob creation throws (theoretical, extremely rare) | Button shows inline error message "Export failed — please try again" with a retry button; original Export button stays functional | Inline error + retry |
 | EXPORT_SUCCESS | Any report | Button text changes to "Downloaded {filename}" for ~2 seconds, then resets to "Export report" | N/A |
-| FILE_NAME | Any report | File name is `a11yfix-report-{hostname}-{YYYY-MM-DD}.html` where hostname is extracted from `report.url` and date from `report.timestamp` | N/A |
+| FILE_NAME | Any report | File name is `darkhouse-report-{hostname}-{YYYY-MM-DD}.html` where hostname is extracted from `report.url` and date from `report.timestamp` | N/A |
 | NO_RESCAN | Any report, any export interaction | Zero fetch calls, zero re-scans, zero AI calls during the entire export flow | N/A |
 | KEYBOARD | Any report | Export button is keyboard-operable, focusable with visible ring, labelled | N/A |
 | NARROW_VIEWPORT | Any report at phone width | Export button stays reachable; button text truncates gracefully if filename is long | N/A |
@@ -88,7 +88,7 @@ Implemented story 4.1. Added `apps/web/lib/export.ts` (pure `exportFilename` hos
 
 Tests: `apps/web/tests/export.test.ts` (8) for `exportFilename`, `renderReportHtml` (happy path with all four AnalystImpact fields, all-pass, no-impacts, escaping, no-Developer-vocabulary), and `triggerExport` mechanics; `apps/web/tests/report-surface.test.tsx` additions for the export flow (EXPORT_A11Y native/labelled/focusable no-fetch, EXPORT_DOWNLOAD blob + anchor + revoke, EXPORT_SUCCESS 2 s reset + truncation, EXPORT_FAILURE inline alert + Retry recovery). The pre-existing "Export stays an inert placeholder" test was replaced (the button is no longer inert). The happy-path no-Developer-vocabulary fixture was corrected so AnalystImpact copy no longer embeds the violation id.
 
-Step-03 verification: all Tasks & AC met; **Matrix Test Audit passed** — every I/O matrix row covered by a passing test: HAPPY_PATH (export.test HAPPY_PATH + report-surface EXPORT_DOWNLOAD), ALL_PASS, NO_IMPACTS, BLOB_FAILURE (EXPORT_FAILURE), EXPORT_SUCCESS (EXPORT_SUCCESS reset + triggerExport), FILE_NAME (exportFilename), NO_RESCAN (NO_RESCAN + EXPORT_A11Y fetchMock), KEYBOARD (EXPORT_A11Y), NARROW_VIEWPORT (EXPORT_SUCCESS truncate + existing responsive test). Full suite: `pnpm --filter @a11yfix/web test` 180/180 (was 151), lint clean, `next build` succeeds (fixed a test mock type that only `tsc` — via `next build` — caught: the TypedBlob `vi.fn` now declares its `Blob` param so `mock.calls[0][0]` types as `Blob`). Next: step-04 review.
+Step-03 verification: all Tasks & AC met; **Matrix Test Audit passed** — every I/O matrix row covered by a passing test: HAPPY_PATH (export.test HAPPY_PATH + report-surface EXPORT_DOWNLOAD), ALL_PASS, NO_IMPACTS, BLOB_FAILURE (EXPORT_FAILURE), EXPORT_SUCCESS (EXPORT_SUCCESS reset + triggerExport), FILE_NAME (exportFilename), NO_RESCAN (NO_RESCAN + EXPORT_A11Y fetchMock), KEYBOARD (EXPORT_A11Y), NARROW_VIEWPORT (EXPORT_SUCCESS truncate + existing responsive test). Full suite: `pnpm --filter @darkhouse/web test` 180/180 (was 151), lint clean, `next build` succeeds (fixed a test mock type that only `tsc` — via `next build` — caught: the TypedBlob `vi.fn` now declares its `Blob` param so `mock.calls[0][0]` types as `Blob`). Next: step-04 review.
 
 ### 2026-08-17 — code review loop 1 (dispatch subagent)
 
@@ -97,23 +97,23 @@ Four-layer review (blind-hunter, edge-case-hunter, verification-gap, acceptance-
 - [x] [Review][Patch] P-1 — `handleExport` error path leaves the prior success-reset timer armed, so a success → (<2 s) → failure sequence clears the new error `role="alert"` early (weakens AC4 "error shows inline message"). [`apps/web/components/report-surface.tsx:89`]
 - [x] [Review][Patch] P-2 — `triggerExport` leaks the object URL if anything after `createObjectURL` throws (e.g. a blocked `anchor.click()`), because `URL.revokeObjectURL` is not in a `finally`; the surface catch then loses the URL. [`apps/web/lib/export.ts:240`]
 
-**Resolution:** loop review passed with patches applied (no revert). `review_loop_iteration` → 1. Re-engaged implementation subagent applied P-1 (clear stale timer in catch) and P-2 (wrap revoke in finally) plus pinning tests (EXPORT_ERROR_NOT_OVERWRITTEN, revoke-on-throw). Full verification re-run: `pnpm --filter @a11yfix/web test` 182/182 (was 180), lint clean, build OK. Story status: done.
+**Resolution:** loop review passed with patches applied (no revert). `review_loop_iteration` → 1. Re-engaged implementation subagent applied P-1 (clear stale timer in catch) and P-2 (wrap revoke in finally) plus pinning tests (EXPORT_ERROR_NOT_OVERWRITTEN, revoke-on-throw). Full verification re-run: `pnpm --filter @darkhouse/web test` 182/182 (was 180), lint clean, build OK. Story status: done.
 
 ## Design Notes
 
 - **Client-side-only generation is a product constraint, not a shortcut.** The "no dev server required" invariant (FR-11) means the exported file must open locally without `pnpm dev`. Server-side rendering or API-driven export would couple the file to the running app. Client-side HTML composition with embedded CSS ensures the file is truly standalone.
 - **Embedded CSS reuses the design token values, not the Tailwind classes.** The exported HTML is a static document — Tailwind's utility classes won't resolve without the build pipeline. Instead, the CSS custom properties from `globals.css :root` are inlined, and minimal layout/color classes are hand-written for the report structure. Inter is imported from Google Fonts CDN; if offline, the browser falls back to its default sans-serif.
 - **The success confirmation is a quiet inline label, not a toast.** UX-DR7 bans toast-flooding; the "Downloaded {filename}" text briefly replaces the button label, then resets. This is the lightest-weight confirmation that doesn't interrupt the user's flow.
-- **File naming carries the domain and date.** `a11yfix-report-example-com-2026-08-20.html` is immediately identifiable in a Downloads folder. The hostname is extracted from `report.url` (browser `URL` API); the date from `report.timestamp` formatted as ISO date.
+- **File naming carries the domain and date.** `darkhouse-report-example-com-2026-08-20.html` is immediately identifiable in a Downloads folder. The hostname is extracted from `report.url` (browser `URL` API); the date from `report.timestamp` formatted as ISO date.
 - **No PDF in 4-1.** HTML is universally viewable, shareable, and printable. PDF adds complexity (puppeteer, print styles, encoding) that belongs in a later story if demanded. The spec can be extended; the base export is HTML.
 - **4.2's proof artifact is explicitly out of scope.** The export contains data (counts, impacts, metadata) but not screenshots or visual proof of broken experiences. That coupling is story 4.2's design problem.
 
 ## Verification
 
 **Commands:**
-- `pnpm --filter @a11yfix/web test` — expected: new `export` suites green alongside the existing (~169) tests.
-- `pnpm --filter @a11yfix/web lint` — expected: clean.
-- `pnpm --filter @a11yfix/web build` — expected: succeeds under Next 16 Turbopack.
+- `pnpm --filter @darkhouse/web test` — expected: new `export` suites green alongside the existing (~169) tests.
+- `pnpm --filter @darkhouse/web lint` — expected: clean.
+- `pnpm --filter @darkhouse/web build` — expected: succeeds under Next 16 Turbopack.
 
 **Manual checks (if no CLI):**
 - Mount a fixture `AuditReport` on a scratch page, click Export, and confirm the downloaded HTML opens correctly in a browser with all styling present and no external resource errors.

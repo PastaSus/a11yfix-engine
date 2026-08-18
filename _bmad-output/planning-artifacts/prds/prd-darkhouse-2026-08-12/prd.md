@@ -1,19 +1,19 @@
 ---
-title: A11yFix Engine
+title: Darkhouse
 status: draft
 created: 2026-08-12
 updated: 2026-08-12
 ---
 
-# PRD: A11yFix Engine
+# PRD: Darkhouse
 
 ## 0. Document Purpose
 
-This PRD is for the project owner, downstream workflow owners (UX, architecture, epics/stories), and any external contributor to the open-source repository. It defines A11yFix Engine — an automated accessibility and performance remediation platform — as a buildable contract: features with globally number-stable FRs, non-goals, measurable success, and an assumptions index. It builds directly on the approved Product Brief (`_bmad-output/planning-artifacts/briefs/brief-a11yfix-engine-2026-08-12/brief.md`) and does not duplicate it. Technical implementation choices live in the addendum, not here.
+This PRD is for the project owner, downstream workflow owners (UX, architecture, epics/stories), and any external contributor to the open-source repository. It defines Darkhouse — an automated accessibility and performance remediation platform — as a buildable contract: features with globally number-stable FRs, non-goals, measurable success, and an assumptions index. It builds directly on the approved Product Brief (`_bmad-output/planning-artifacts/briefs/brief-darkhouse-2026-08-12/brief.md`) and does not duplicate it. Technical implementation choices live in the addendum, not here.
 
 ## 1. Vision
 
-A11yFix Engine turns raw accessibility and performance diagnostics into outcomes. A web scan currently ends as a dense rule dump that nobody acts on — stakeholders cannot read it, developers must hand-craft every fix, and studios cannot turn it into a sales conversation. This product renders one audit two ways: a plain-English business narrative a client can act on, and reviewable, production-ready React and Tailwind code patches a developer can ship. Every generated patch is proposed, never auto-applied, keeping AI remediation safe by construction.
+Darkhouse turns raw accessibility and performance diagnostics into outcomes. A web scan currently ends as a dense rule dump that nobody acts on — stakeholders cannot read it, developers must hand-craft every fix, and studios cannot turn it into a sales conversation. This product renders one audit two ways: a plain-English business narrative a client can act on, and reviewable, production-ready React and Tailwind code patches a developer can ship. Every generated patch is proposed, never auto-applied, keeping AI remediation safe by construction.
 
 The same engine is Nerezo Studio's lead-generation weapon — a prospect scan becomes a visual, exportable diagnostic report with direct proof of a broken user experience. Beyond that, it is an open-source, spec-driven portfolio centerpiece built from first principles. If it succeeds, remediation stops being a dump-and-forget exercise and becomes a document a business acts on and a developer ships from.
 
@@ -35,7 +35,7 @@ The same engine is Nerezo Studio's lead-generation weapon — a prospect scan be
 
 ### 2.3 Key User Journeys
 
-- **UJ-1. Nerezo runs a prospect check and sells the fix.** Nerezo developer Matteo, before sending outreach to a small e-commerce prospect, pastes the prospect URL into A11yFix Engine. The scan runs headless; the Analyst posits that 40% of product pages fail a WCAG AA contrast rule and estimates the share of mobile checkout attempts affected. Matteo exports the visual diagnostic report, attaches the captured broken-experience proof to the email, and sends. **Edge case:** the scan times out on a heavy page — Matteo sees a clear failure state and retries with a reduced depth setting rather than hitting an infinite spinner.
+- **UJ-1. Nerezo runs a prospect check and sells the fix.** Nerezo developer Matteo, before sending outreach to a small e-commerce prospect, pastes the prospect URL into Darkhouse. The scan runs headless; the Analyst posits that 40% of product pages fail a WCAG AA contrast rule and estimates the share of mobile checkout attempts affected. Matteo exports the visual diagnostic report, attaches the captured broken-experience proof to the email, and sends. **Edge case:** the scan times out on a heavy page — Matteo sees a clear failure state and retries with a reduced depth setting rather than hitting an infinite spinner.
 - **UJ-2. A client reads the report.** Priya, the prospect's non-technical founder, opens the report. She sees a plain-English summary — what's broken in user terms, what it costs her business, and the fix priority — no rule IDs she must decode. She forwards it to her developer with "can we fix these?"
 - **UJ-3. A developer reviews and applies patches.** Her developer, Dan, opens the same audit in Developer view. Each violation shows the proposed React/Tailwind diff, the WCAG rule it satisfies, and a side-by-side before/after. He reviews, adjusts, and applies the patches to his codebase. **Edge case:** a proposed patch targets a component that doesn't exist in his stack — he can see why it was proposed and dismiss it with context, never blindly merged.
 

@@ -6,8 +6,8 @@ baseline_commit: 'd88d4912f030b3cf51ed91389ba709150557cd4a'
 status: 'done'
 review_loop_iteration: 1
 context:
-  - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md'
-  - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md'
+  - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md'
+  - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/DESIGN.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -26,7 +26,7 @@ context:
 - All three named stages always render: Scanning → Translating → Ready. In 1.4 Translating is a no-op pass-through to Ready after a successful envelope; the stage order/name contract is fixed for Epic 2.
 - Three states are visually distinct: `failed` (Retry + human cause hint), `paused` (copy exactly "Translation is waiting on a free-tier limit — retrying."), and `ready`. Cause copy is human-language from the error envelope, never a raw `code`.
 - No parent-side auto-repeat, celebration animation, or toast. A11y floor per EXPERIENCE.md: labeled focusable controls, visible focus ring, keyboard-operable, instant under Reduce Motion, status never color-only.
-- Work stays on branch `feat/epic-1-scanning`; tests run via `pnpm --filter @a11yfix/web test`.
+- Work stays on branch `feat/epic-1-scanning`; tests run via `pnpm --filter @darkhouse/web test`.
 
 **Ask First:**
 - None known; the four product decisions for 1.4 (Translating pass-through, vitest+RTL, minimal ready confirmation, loopback dev carve-out) are already settled.
@@ -98,9 +98,9 @@ context:
 
 **Commands:**
 - `pnpm install` -- expected: lockfile updates, no errors.
-- `pnpm --filter @a11yfix/web test` -- expected: all vitest suites pass.
-- `pnpm --filter @a11yfix/web lint` -- expected: clean ESLint.
-- `pnpm --filter @a11yfix/web build` -- expected: typecheck + build succeed (Next 16 removed `next lint`).
+- `pnpm --filter @darkhouse/web test` -- expected: all vitest suites pass.
+- `pnpm --filter @darkhouse/web lint` -- expected: clean ESLint.
+- `pnpm --filter @darkhouse/web build` -- expected: typecheck + build succeed (Next 16 removed `next lint`).
 
 **Manual checks (if no CLI):**
 - `pnpm dev` with `uv run uvicorn services.scanner.app.main:app` running: submit a live URL → stepper Scanning → Ready with counts; submit an unreachable URL → failed + Retry + hint; open Home first visit → exact empty-state copy.

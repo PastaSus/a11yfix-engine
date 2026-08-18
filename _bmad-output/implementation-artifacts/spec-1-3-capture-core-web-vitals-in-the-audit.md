@@ -53,7 +53,7 @@ context: []
 
 - `services/scanner/app/harvest.py:24-29` -- constants block; add `MAX_CONCURRENT_SCANS`, `SCAN_SLOT_TIMEOUT_MS`, module-level `asyncio.Semaphore`.
 - `services/scanner/app/harvest.py:73-82` -- `build_scan_result`: replace hardcoded null `vitals` with a passed-in dict (default all-null keeps old callers/tests green).
-- `services/scanner/app/harvest.py:135-184` -- `run_scan`: `add_init_script(VITALS_INIT_SCRIPT)` after `new_page()`/before `goto`; read `window.__a11yfixVitals` after `axe.run()`; wrap `async with async_playwright()` in slot acquire/release. Acquire's own `wait_for` timeout → `HarvestError(code="busy")`; verify it passes through both the `except (PlaywrightError, PlaywrightTimeoutError)` and `run_scan_with_timeout`'s `except asyncio.TimeoutError` untouched.
+- `services/scanner/app/harvest.py:135-184` -- `run_scan`: `add_init_script(VITALS_INIT_SCRIPT)` after `new_page()`/before `goto`; read `window.__darkhouseVitals` after `axe.run()`; wrap `async with async_playwright()` in slot acquire/release. Acquire's own `wait_for` timeout → `HarvestError(code="busy")`; verify it passes through both the `except (PlaywrightError, PlaywrightTimeoutError)` and `run_scan_with_timeout`'s `except asyncio.TimeoutError` untouched.
 - `services/scanner/app/harvest.py:187-195` -- `run_scan_with_timeout`: confirm busy passes through; otherwise unchanged.
 - `services/scanner/app/errors.py:40-45` -- `HarvestError` already accepts `code=` override; no change.
 - `services/scanner/tests/conftest.py` -- existing `spa_fixture_server` serves `fixtures/` on an ephemeral port; reuse.
@@ -64,7 +64,7 @@ context: []
 
 **Execution:**
 
-- [x] `services/scanner/app/harvest.py` -- add `VITALS_INIT_SCRIPT` (inline JS: `largest-contentful-paint` + `layout-shift` observers, `buffered: true`, write `window.__a11yfixVitals = { lcp, cls, _cls }`) and pure `collect_vitals(page)` → `{ lcp: float|None, inp: None, cls: float|None }`.
+- [x] `services/scanner/app/harvest.py` -- add `VITALS_INIT_SCRIPT` (inline JS: `largest-contentful-paint` + `layout-shift` observers, `buffered: true`, write `window.__darkhouseVitals = { lcp, cls, _cls }`) and pure `collect_vitals(page)` → `{ lcp: float|None, inp: None, cls: float|None }`.
 - [x] `services/scanner/app/harvest.py` -- add `MAX_CONCURRENT_SCANS`/`SCAN_SLOT_TIMEOUT_MS`, module-level `asyncio.Semaphore`, `acquire_scan_slot()` (own `wait_for` timeout → `HarvestError(code="busy")`); release in `finally`.
 - [x] `services/scanner/app/harvest.py` -- wire `run_scan`: init script before `goto`, `collect_vitals` after `axe.run()` → `build_scan_result(url, scan_id, violations, vitals)`.
 - [x] `services/scanner/tests/fixtures/vitals.html` -- page with a guaranteed LCP element (large text block) and a post-load layout shift so CLS is nonzero; served by existing fixture server.
@@ -83,7 +83,7 @@ context: []
 
 - **Observers not `getEntriesByType` at the end:** CLS is only measurable via a `layout-shift` observer registered before the shifts happen; `add_init_script` is the only reliable pre-page hook. LCP uses `buffered: true` so late reads still see earlier entries.
 - **Queue + bound, not reject or unlimited:** rejecting immediately would break story 1.4's "watch progress" UX; an unbounded queue defeats the resource bound. A short slot wait turns saturation into a cheap typed error.
-- **Golden normalize example:** `window.__a11yfixVitals = { lcp: 812.5, cls: 0.034 }` → `{ "lcp": 812.5, "inp": None, "cls": 0.034 }`. A measured clean page (no shifts) → `cls: 0.0` (a real measurement, not null). No LCP element → `lcp: None`. Probe never ran / blank page → `{ "lcp": None, "inp": None, "cls": None }`. Epic 3's Developer View renders nulls as "—" and 0.00 as a clean score.
+- **Golden normalize example:** `window.__darkhouseVitals = { lcp: 812.5, cls: 0.034 }` → `{ "lcp": 812.5, "inp": None, "cls": 0.034 }`. A measured clean page (no shifts) → `cls: 0.0` (a real measurement, not null). No LCP element → `lcp: None`. Probe never ran / blank page → `{ "lcp": None, "inp": None, "cls": None }`. Epic 3's Developer View renders nulls as "—" and 0.00 as a clean score.
 - **`cls` sentinel, not a mirror field:** the probe seeds `cls: null`; a `layout-shift` firing accumulates it from 0 so measured-zero (`0.0`) stays distinct from unmeasured (`null`, no observers fired).
 
 ## Spec Change Log

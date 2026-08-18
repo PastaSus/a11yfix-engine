@@ -6,8 +6,8 @@ status: 'done'
 baseline_commit: '9a5fe88d77878f438860504a50f8188bb22c47f8'
 review_loop_iteration: 0
 context:
-  - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md'
-  - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md'
+  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/DESIGN.md'
+  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md'
   - '_bmad-output/implementation-artifacts/spec-3-1-establish-the-design-foundation-and-report-surface.md'
   - '_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md'
   - '_bmad-output/implementation-artifacts/epic-3-context.md'
@@ -100,7 +100,7 @@ _(Append-only; populated by step-04 review loops.)_
 - [x] [Review][Patch] P-5 — Violation table had no accessible name (heading outside `<table>`). Fix: `aria-label="Violations"` on the `<table>`; test asserts `getByRole("table", { name: "Violations" })`.
 - [x] [Review][Patch] P-6 — Fixture diff hunk header inconsistent: `@@ -1,6 +1,7 @@` claims 6→7 lines but body has 1 del + 4 adds. Fix: corrected to `@@ -1 +1,4 @@` in both `makePatch` (`fixtures.ts`) and the identical copy in `diff-viewer.test.tsx`.
 
-**Resolution:** loop review passed with patches only (no revert). `review_loop_iteration` stays 0 (loopbacks only). Re-engaged implementation subagent applied P-1…P-6; full verification re-run: `pnpm --filter @a11yfix/web test` 169/169, lint clean, build OK.
+**Resolution:** loop review passed with patches only (no revert). `review_loop_iteration` stays 0 (loopbacks only). Re-engaged implementation subagent applied P-1…P-6; full verification re-run: `pnpm --filter @darkhouse/web test` 169/169, lint clean, build OK.
 
 ## Design Notes
 
@@ -115,9 +115,9 @@ _(Append-only; populated by step-04 review loops.)_
 ## Verification
 
 **Commands:**
-- `pnpm --filter @a11yfix/web test` — expected: new `developer-view` suites green alongside the existing (~139) tests.
-- `pnpm --filter @a11yfix/web lint` — expected: clean.
-- `pnpm --filter @a11yfix/web build` — expected: succeeds under Next 16 Turbopack.
+- `pnpm --filter @darkhouse/web test` — expected: new `developer-view` suites green alongside the existing (~139) tests.
+- `pnpm --filter @darkhouse/web lint` — expected: clean.
+- `pnpm --filter @darkhouse/web build` — expected: succeeds under Next 16 Turbopack.
 
 **Manual checks (if no CLI):**
 - The surface is verified by tests only (no route, matching 3.1). For visual sanity, temporarily mount a fixture `AuditReport` with violations, vitals, and patches on a scratch page and confirm the violation table, vitals cards, and diff panels render in the established palette and scroll/expand cleanly in `pnpm dev`.

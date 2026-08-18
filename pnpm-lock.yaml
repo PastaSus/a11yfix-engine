@@ -10,7 +10,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@a11yfix/contracts':
+      '@darkhouse/contracts':
         specifier: workspace:*
         version: link:../../contracts
       next:

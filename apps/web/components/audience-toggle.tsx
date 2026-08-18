@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 export type Audience = "client" | "developer";
 
-export const AUDIENCE_STORAGE_KEY = "a11yfix:audience";
+export const AUDIENCE_STORAGE_KEY = "darkhouse:audience";
 
 const OPTIONS: { value: Audience; label: string }[] = [
   { value: "client", label: "Client" },
