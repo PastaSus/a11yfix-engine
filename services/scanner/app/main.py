@@ -20,7 +20,7 @@ from jsonschema import Draft7Validator, FormatChecker
 from pydantic import BaseModel, ConfigDict
 
 from services.scanner.app.errors import HarvestError, ScanError, register_exception_handlers
-from services.scanner.app.harvest import run_scan_with_timeout
+from services.scanner.app.harvest import SCHEMA_VERSION, run_scan_with_timeout
 from services.scanner.app.validation import validate_url
 
 CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "contracts"
@@ -76,6 +76,12 @@ class ScanRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     url: str
+
+
+@app.get("/health", response_model=dict[str, Any])
+async def health() -> dict[str, Any]:
+    """Liveness probe for container orchestrators; holds no state."""
+    return {"status": "ok", "schema_version": SCHEMA_VERSION}
 
 
 @app.post("/scan", response_model=None)
