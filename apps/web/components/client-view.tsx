@@ -21,7 +21,7 @@ export function ClientView({ report, onViewFix }: ClientViewProps) {
   const hasImpacts = report.analyst_impacts.length > 0;
 
   return (
-    <section aria-label="Client view" className="grid gap-6 pt-6 md:grid-cols-12">
+    <section aria-label="Client view" className="grid gap-6 pt-8 md:grid-cols-12">
       <div className="rounded-md border border-outline bg-surface-container p-6 md:col-span-7">
         <h3 className="text-lg font-semibold">Executive summary</h3>
         <div
@@ -65,7 +65,7 @@ export function ClientView({ report, onViewFix }: ClientViewProps) {
         {hasImpacts && (
           <ol className="mt-4">
             {report.analyst_impacts.map((impact) => (
-              <li key={impact.violation_id} className="border-b border-outline py-4 last:border-b-0">
+              <li key={impact.violation_id} className="border-b border-outline py-5 last:border-b-0">
                 <h4 className="text-base font-semibold">{impact.business_problem}</h4>
                 <dl className="mt-2 grid gap-1 text-sm">
                   <div>
