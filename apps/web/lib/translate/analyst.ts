@@ -124,6 +124,7 @@ function buildAuditReport(scanResult: ScanResult, analystImpacts: AnalystImpact[
     timestamp: scanResult.timestamp,
     analyst_impacts: analystImpacts,
     architect_patches: [],
+    proof: scanResult.proof ?? null,
   };
 }
 
@@ -140,7 +141,7 @@ export async function translateAnalyst(
   const violations = highSeverityViolations(scanResult);
   const start = now();
 
-  console.log("[a11yfix] translate start", {
+  console.log("[darkhouse] translate start", {
     scanId: scanResult.scanId,
     provider: config.provider,
     model: config.model,
@@ -157,7 +158,7 @@ export async function translateAnalyst(
     }
 
     const durationMs = now() - start;
-    console.log("[a11yfix] translate end", {
+    console.log("[darkhouse] translate end", {
       scanId: scanResult.scanId,
       durationMs,
       analystImpacts: analystImpacts.length,
@@ -169,7 +170,7 @@ export async function translateAnalyst(
       error instanceof TranslateError
         ? error
         : new TranslateError("translate_error", error instanceof Error ? error.message : String(error));
-    console.error("[a11yfix] translate error", {
+    console.error("[darkhouse] translate error", {
       scanId: scanResult.scanId,
       durationMs,
       code: translateError.code,

@@ -1,16 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { ProgressStepper } from "@/components/progress-stepper";
 import type { StageName } from "@/components/progress-stepper";
+import { ReportSurface } from "@/components/report-surface";
 import { submitScan } from "@/lib/scan";
 import type { ScanResult } from "@/lib/scan";
+import { submitTranslate } from "@/lib/submit-translate";
 import { validateScanUrl } from "@/lib/validate-scan-url";
+import type { AuditReport } from "@/lib/translate/client";
 
 const EMPTY_STATE_COPY = "No scans yet — paste a URL to run your first audit.";
 const PAUSED_COPY = "Translation is waiting on a free-tier limit — retrying.";
 const GENERIC_FAILURE_HINT = "Something went wrong while scanning — try again in a moment.";
-const TRANSLATING_PASS_THROUGH_MS = 400;
 
 const STAGE_ANNOUNCEMENT: Record<StageName, string> = {
   scanning: "Scanning your site.",
@@ -22,7 +24,7 @@ type ScanState =
   | { stage: "idle" }
   | { stage: "scanning" }
   | { stage: "translating" }
-  | { stage: "ready"; result: ScanResult }
+  | { stage: "ready"; report: AuditReport }
   | { stage: "failed"; hint: string }
   | { stage: "paused" };
 
@@ -32,18 +34,11 @@ const FAILURE_HINTS: Record<string, string> = {
   invalid_url: "That address looks invalid — check it and try again.",
   insecure_url: "That address isn't a secure https:// URL.",
   scan_error: GENERIC_FAILURE_HINT,
+  translate_error: "The AI translation layer failed — try again in a moment.",
 };
 
 function failureHint(code: string): string {
   return FAILURE_HINTS[code] ?? GENERIC_FAILURE_HINT;
-}
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 const INPUT_CLASSES =
@@ -68,6 +63,24 @@ export function ScanForm() {
   const [state, setState] = useState<ScanState>({ stage: "idle" });
   const inputRef = useRef<HTMLInputElement>(null);
   const inflight = useRef(false);
+  const lastScan = useRef<{ url: string; result: ScanResult } | null>(null);
+
+  async function runTranslate(scan: ScanResult) {
+    setState({ stage: "translating" });
+    const translation = await submitTranslate(scan);
+
+    if (translation.ok) {
+      setState({ stage: "ready", report: translation.data });
+      return;
+    }
+    if (translation.status === 503 || translation.code === "rate_limited") {
+      setState({ stage: "paused" });
+      return;
+    }
+    const hint =
+      translation.message.trim() !== "" ? translation.message : failureHint(translation.code);
+    setState({ stage: "failed", hint });
+  }
 
   async function runScan(target: string) {
     if (inflight.current) return;
@@ -76,9 +89,8 @@ export function ScanForm() {
       setState({ stage: "scanning" });
       const result = await submitScan(target);
       if (result.ok) {
-        setState({ stage: "translating" });
-        await new Promise((resolve) => setTimeout(resolve, TRANSLATING_PASS_THROUGH_MS));
-        setState({ stage: "ready", result: result.data });
+        lastScan.current = { url: target, result: result.data };
+        await runTranslate(result.data);
         return;
       }
       if (result.status === 503) {
@@ -87,6 +99,17 @@ export function ScanForm() {
       }
       const hint = result.message.trim() !== "" ? result.message : failureHint(result.code);
       setState({ stage: "failed", hint });
+    } finally {
+      inflight.current = false;
+    }
+  }
+
+  async function retryTranslate() {
+    const cached = lastScan.current;
+    if (inflight.current || !cached) return;
+    inflight.current = true;
+    try {
+      await runTranslate(cached.result);
     } finally {
       inflight.current = false;
     }
@@ -110,19 +133,22 @@ export function ScanForm() {
   function handleRetry() {
     if (inflight.current) return;
     const current = url.trim();
-    if (current !== "") {
-      const error = validateScanUrl(current);
-      if (error) {
-        setValidationError(error);
-        inputRef.current?.focus();
-        return;
-      }
-      setValidationError(null);
-      void runScan(current);
+    if (current === "") {
+      if (submittedUrl) void runScan(submittedUrl);
       return;
     }
-    if (submittedUrl) {
-      void runScan(submittedUrl);
+    const error = validateScanUrl(current);
+    if (error) {
+      setValidationError(error);
+      inputRef.current?.focus();
+      return;
+    }
+    setValidationError(null);
+    const cached = lastScan.current;
+    if (cached && cached.url === current) {
+      void retryTranslate();
+    } else {
+      void runScan(current);
     }
   }
 
@@ -135,10 +161,14 @@ export function ScanForm() {
         ? "translating"
         : "scanning";
   const showStepper = hasRun;
-  const ready = state.stage === "ready" ? state.result : null;
+  const ready = state.stage === "ready" ? state.report : null;
 
   return (
-    <section className="mx-auto w-full max-w-2xl px-6 py-10" aria-labelledby="scan-form-heading">
+    <Fragment>
+      <section
+        className="mx-auto w-full max-w-2xl px-6 py-10"
+        aria-labelledby="scan-form-heading"
+      >
       <h2
         id="scan-form-heading"
         className="text-xl font-semibold leading-7 text-on-surface"
@@ -198,31 +228,6 @@ export function ScanForm() {
         </div>
       )}
 
-      {ready && (
-        <dl
-          className="mt-6 rounded-md border border-outline bg-surface p-4"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
-            <DtDd term="URL" value={ready.url} />
-            <DtDd
-              term="Violations"
-              value={`${ready.violations.length} ${ready.violations.length === 1 ? "violation" : "violations"}`}
-            />
-            <DtDd
-              term="LCP"
-              value={ready.vitals.lcp === null ? "Not measured" : `${Math.round(ready.vitals.lcp)} ms`}
-            />
-            <DtDd
-              term="CLS"
-              value={ready.vitals.cls === null ? "Not measured" : String(ready.vitals.cls)}
-            />
-            <DtDd term="Scanned at" value={formatTimestamp(ready.timestamp)} />
-          </div>
-        </dl>
-      )}
-
       {state.stage === "failed" && (
         <div
           role="alert"
@@ -247,17 +252,9 @@ export function ScanForm() {
           </button>
         </div>
       )}
-    </section>
-  );
-}
+      </section>
 
-function DtDd({ term, value }: { term: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-1">
-      <dt className="text-xs font-semibold uppercase tracking-[0.04em] text-on-surface-variant">
-        {term}
-      </dt>
-      <dd className="font-mono text-sm tabular-nums text-on-surface">{value}</dd>
-    </div>
+      {ready && <ReportSurface report={ready} />}
+    </Fragment>
   );
 }

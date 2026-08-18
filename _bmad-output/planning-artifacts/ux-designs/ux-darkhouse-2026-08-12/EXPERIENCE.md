@@ -1,14 +1,14 @@
 ---
-name: A11yFix Engine
+name: Darkhouse
 status: draft
 sources:
-  - {planning_artifacts}/prds/prd-a11yfix-engine-2026-08-12/prd.md
-  - {planning_artifacts}/briefs/brief-a11yfix-engine-2026-08-12/brief.md
+  - {planning_artifacts}/prds/prd-darkhouse-2026-08-12/prd.md
+  - {planning_artifacts}/briefs/brief-darkhouse-2026-08-12/brief.md
 created: 2026-08-12
 updated: 2026-08-12
 ---
 
-# A11yFix Engine — Experience Spine
+# Darkhouse — Experience Spine
 
 > Paired with `DESIGN.md` (this file's sibling). Web dashboard, dual-audience. Two UI modes on one grid: Client View (business narrative) and Developer View (line-level precision). The single product tension this spine resolves: one report, two languages.
 

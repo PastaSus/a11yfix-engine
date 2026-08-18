@@ -15,7 +15,7 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
   summary: No automated coverage for the web→scanner proxy seam (route.ts), and no CI workflow enforces lint/build/test.
   evidence: Route handler is verified only by manual `pnpm dev`; the seam gets real fixtures when story 1.4 builds the submission UI. A CI pipeline was deferred post-MVP by the architecture spine.
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-capture-a-structured-scan-of-a-public-url.md`
-  summary: `@a11yfix/contracts` is declared but unused by the web tier in 1.1, and no TS types are generated from the schemas.
+  summary: `@darkhouse/contracts` is declared but unused by the web tier in 1.1, and no TS types are generated from the schemas.
   evidence: Web-side schema validation/types begin when the web tier owns an audit report (stories 1.2/1.3). The package skeleton is correct.
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-capture-a-structured-scan-of-a-public-url.md`
   summary: Scanner has no `/health` endpoint and is runnable only from the repo root (package=false, cwd on sys.path).
@@ -74,7 +74,7 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 ## Deferred from: code review of spec-2-1 (2026-08-16)
 
 - `AuditReport.schemaVersion` is a passthrough of the ScanResult's version; the two canonical schemas pin the same `1.0.0` today, but the versioning scheme for the enriched envelope (per-shape vs shared base) is still undecided from the spec-1-1 deferral — revisit when the web tier gains schema validation.
-- Hand-written `AuditReport`/`AnalystImpact` TS types are not generated from `contracts/audit-report.schema.json`, so type↔schema drift is only caught by tests; the web tier still has no runtime schema-validation pass (deferred `@a11yfix/contracts` item). This is the AC-2 "no schema validation" gap.
+- Hand-written `AuditReport`/`AnalystImpact` TS types are not generated from `contracts/audit-report.schema.json`, so type↔schema drift is only caught by tests; the web tier still has no runtime schema-validation pass (deferred `@darkhouse/contracts` item). This is the AC-2 "no schema validation" gap.
 - `MAX_TOKENS = 1024` is fixed regardless of high-severity violation count and `finish_reason` is never inspected; a truncation would surface as a `translate_error` (bounded, typed) rather than a retry with a bigger budget. Consider dynamic budget when many violations land.
 - `extractJsonArray` slices between the first `[` and last `]`; a provider reply wrapped in prose/markdown fences containing brackets could mis-slice (degrades to a typed `translate_error`). Fence-aware extraction can ride a prompt-hardening pass.
 - `scanResult.url` (user-supplied public URL) is sent verbatim to the third-party AI provider in the prompt; query strings could carry trackers/IDs. Product flow is public-URL-only, so low risk, but consider passing origin + node counts only if privacy is tightened.
@@ -96,7 +96,7 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 ## Deferred from: code review of spec-3-1 (2026-08-16)
 
 - The `AudienceToggle` restore effect is keyed on `onChange` (`apps/web/components/audience-toggle.tsx:25-30`); an unstable callback from a future consumer would re-run the storage restore on every render and could clobber a fresh user choice. Latent today (ReportSurface passes the stable `setAudience`); document the "onChange must be stable" contract or switch to a mount-once restore when the surface gets wired to a route.
-- The audience storage key `a11yfix:audience` is global to the session; once more than one report surface can exist in a session, toggling one silently overrides the other's on remount. Scope the key per report/scanId at wiring time.
+- The audience storage key `darkhouse:audience` is global to the session; once more than one report surface can exist in a session, toggling one silently overrides the other's on remount. Scope the key per report/scanId at wiring time.
 
 ## Deferred from: code review of spec-3-2 (2026-08-17, loop 1)
 
@@ -105,4 +105,10 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
   evidence: Hunted in review loop 1. The spec bans auto-scroll, not intentional focus hand-off, but the sensible focus target is the Developer View's content, which only exists in 3.3's real rows — wire a focus move when 3.3 renders the Developer View.
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md`
   summary: `timestamp` is optional in `contracts/audit-report.schema.json` but required in the web `AuditReport` TS type, so a null/absent timestamp could reach `formatScanDate` and render "Jan 1, 1970".
-  evidence: Pre-existing schema↔type drift surfaced while tracing verification; `formatScanDate(null)` coerces to epoch and `Number.isNaN` misses it. Belongs with the deferred `@a11yfix/contracts` type-generation/schema-validation item.
+  evidence: Pre-existing schema↔type drift surfaced while tracing verification; `formatScanDate(null)` coerces to epoch and `Number.isNaN` misses it. Belongs with the deferred `@darkhouse/contracts` type-generation/schema-validation item.
+
+## Deferred from: code review of spec-4-2 (2026-08-18, loop 1)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-include-broken-experience-proof-in-the-export.md`
+  summary: The proof ships as a `data:` URI inside the standalone HTML file, but the epic's actual outreach channel is email, where many clients strip `data:` URIs from attachments — the visual proof can silently fail to render in the target medium.
+  evidence: Blind-hunter finding. In-file data-URI works for browser-opening, not for every mail client's attachment rendering; the outreach medium is a future-channel concern, not a correctness gap in the standalone file itself.

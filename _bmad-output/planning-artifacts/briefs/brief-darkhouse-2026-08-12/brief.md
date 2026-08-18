@@ -1,19 +1,19 @@
 ---
-title: A11yFix Engine
+title: Darkhouse
 status: approved
 created: 2026-08-12
 updated: 2026-08-12
 ---
 
-# Product Brief: A11yFix Engine
+# Product Brief: Darkhouse
 
 ## Executive Summary
 
-A11yFix Engine is an automated web accessibility and performance remediation platform that turns raw diagnostic metrics into actionable business outcomes. It closes the gap between the technical failures a scan produces and the decisions a business can act on.
+Darkhouse is an automated web accessibility and performance remediation platform that turns raw diagnostic metrics into actionable business outcomes. It closes the gap between the technical failures a scan produces and the decisions a business can act on.
 
 The platform runs a three-stage pipeline. A lightweight Python service drives headless Chromium with Playwright and axe-core to extract DOM-tree accessibility violations alongside Core Web Vitals on any public page. An AI translation layer then processes that output through two distinct specialist personas: an Analyst Agent that converts technical failures into plain-English business impact — what a WCAG compliance gap or poor mobile contrast actually costs in lost conversions — and an Architect Agent that generates production-ready, accessible React and Tailwind CSS code patches for those exact issues. Finally, a Next.js App Router dashboard presents both perspectives, toggleable between a client-ready visual audit and line-by-line developer diffs.
 
-Launched as an open-source project, A11yFix Engine serves as an enterprise-grade portfolio centerpiece built with disciplined, spec-driven architecture. Internally, it doubles as Nerezo Studio's lead-generation engine: automated prospect site checks, visual diagnostic report exports, and direct proof of broken user experiences attached to outreach emails.
+Launched as an open-source project, Darkhouse serves as an enterprise-grade portfolio centerpiece built with disciplined, spec-driven architecture. Internally, it doubles as Nerezo Studio's lead-generation engine: automated prospect site checks, visual diagnostic report exports, and direct proof of broken user experiences attached to outreach emails.
 
 ## The Problem
 
@@ -25,7 +25,7 @@ On the fix side, existing tools tell you *what* is broken but rarely *how to fix
 
 ## The Solution
 
-A11yFix Engine is a three-part pipeline, each leg aimed at one failure in the loop above:
+Darkhouse is a three-part pipeline, each leg aimed at one failure in the loop above:
 
 1. **Harvest.** A Python service running Playwright + axe-core scans any public URL headlessly, producing a structured report of DOM violations and Core Web Vitals.
 2. **Translate.** An AI layer applies two personas to that raw data. The Analyst converts technical failures into quantified business language — "this contrast violation fails WCAG AA on 40% of your product pages and blocks roughly a quarter of your mobile users from completing checkout." The Architect generates concrete, production-ready React and Tailwind patches that resolve the specific violations found.
@@ -35,7 +35,7 @@ The same engine feeds Nerezo Studio's lead-gen loop. Report exports package a sc
 
 ## What Makes This Different
 
-- **A translation layer, not another linter.** Most tools audit; A11yFix Engine explains and fixes. The Analyst-to-Architect pairing is the differentiator — business narrative and working code from the same scan.
+- **A translation layer, not another linter.** Most tools audit; Darkhouse explains and fixes. The Analyst-to-Architect pairing is the differentiator — business narrative and working code from the same scan.
 - **Generated remediations.** Patches for the long tail of issues, not just a findings list. Adoption of fixes, not just awareness, is the product.
 - **One audit, two audiences.** A single scan renders for a stakeholder who needs to feel the problem and a developer who needs to fix it — no re-scans, no manual rewrite.
 - **Human-in-the-loop by design.** Diffs are proposed and reviewed, an honest and defensible answer to AI-generated accessibility code (wrong ARIA is worse than none).
@@ -76,4 +76,4 @@ The same engine feeds Nerezo Studio's lead-gen loop. Report exports package a sc
 
 ## Vision
 
-If A11yFix Engine succeeds, remediation stops being a dump-and-forget exercise. A scan becomes a working document a business can act on and a developer can ship from. In two to three years, the spec-driven, two-persona pipeline is the pattern teams reach for when an audit needs to become a fix — with the OSS core remaining free and a thin, optional hosted tier covering secure scans, teams, and CI integration for teams that want it. For Nerezo, it simply becomes the reason prospects pick up the phone.
+If Darkhouse succeeds, remediation stops being a dump-and-forget exercise. A scan becomes a working document a business can act on and a developer can ship from. In two to three years, the spec-driven, two-persona pipeline is the pattern teams reach for when an audit needs to become a fix — with the OSS core remaining free and a thin, optional hosted tier covering secure scans, teams, and CI integration for teams that want it. For Nerezo, it simply becomes the reason prospects pick up the phone.

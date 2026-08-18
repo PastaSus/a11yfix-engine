@@ -1,4 +1,6 @@
-import type { ScanResult, Violation } from "@/lib/scan";
+import type { Proof, ScanResult, Violation } from "@/lib/scan";
+
+export type { Proof };
 
 // OQ-1 is open in the PRD (DeepSeek vs Gemini free vs Groq vs local Ollama). These
 // free-tier defaults are an explicit placeholder until a provider is decided:
@@ -34,6 +36,7 @@ export type AuditReport = {
   timestamp: string;
   analyst_impacts: AnalystImpact[];
   architect_patches: ArchitectPatch[];
+  proof?: Proof | null;
 };
 
 export type TranslateDeps = {

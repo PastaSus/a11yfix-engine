@@ -1,22 +1,22 @@
 ---
-name: A11yFix Engine
+name: Darkhouse
 type: architecture-spine
 purpose: build-substrate
 altitude: initiative
 paradigm: 'pipes-and-filters pipeline (harvest → translate → present), orchestrated by a single Next.js web tier'
-scope: 'A11yFix Engine — automated a11y/perf remediation platform (web app + scan service)'
+scope: 'Darkhouse — automated a11y/perf remediation platform (web app + scan service)'
 status: draft
 created: 2026-08-12
 updated: 2026-08-12
 binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12]
 sources:
-  - {planning_artifacts}/prds/prd-a11yfix-engine-2026-08-12/prd.md
-  - {planning_artifacts}/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md
-  - {planning_artifacts}/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md
+  - {planning_artifacts}/prds/prd-darkhouse-2026-08-12/prd.md
+  - {planning_artifacts}/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md
+  - {planning_artifacts}/ux-designs/ux-darkhouse-2026-08-12/DESIGN.md
 companions: []
 ---
 
-# Architecture Spine — A11yFix Engine
+# Architecture Spine — Darkhouse
 
 ## Design Paradigm
 

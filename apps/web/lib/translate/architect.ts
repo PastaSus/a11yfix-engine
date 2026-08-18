@@ -155,7 +155,7 @@ export async function translateArchitect(
   const config = readAiConfig();
   const start = now();
 
-  console.log("[a11yfix] translate start", {
+  console.log("[darkhouse] translate start", {
     scanId: auditReport.scanId,
     provider: config.provider,
     model: config.model,
@@ -176,7 +176,7 @@ export async function translateArchitect(
     }
 
     const durationMs = now() - start;
-    console.log("[a11yfix] translate end", {
+    console.log("[darkhouse] translate end", {
       scanId: auditReport.scanId,
       durationMs,
       architectPatches: patches.length,
@@ -188,7 +188,7 @@ export async function translateArchitect(
       error instanceof TranslateError
         ? error
         : new TranslateError("translate_error", error instanceof Error ? error.message : String(error));
-    console.error("[a11yfix] translate error", {
+    console.error("[darkhouse] translate error", {
       scanId: auditReport.scanId,
       durationMs,
       code: translateError.code,

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AudienceToggle, persistAudience, type Audience } from "@/components/audience-toggle";
 import { ClientView } from "@/components/client-view";
 import { DeveloperView } from "@/components/developer-view";
+import { exportFilename, renderReportHtml, triggerExport } from "@/lib/export";
 import {
   TIER_CHIP,
   TIER_LABELS,
@@ -49,12 +50,52 @@ function formatScanDate(timestamp: string): string {
   });
 }
 
+const EXPORT_SUCCESS_MS = 2000;
+
+type ExportState = "idle" | "success" | "error";
+
 export function ReportSurface({ report }: { report: AuditReport }) {
   const [audience, setAudience] = useState<Audience>("client");
   const [pendingViewFix, setPendingViewFix] = useState<string | null>(null);
+  const [exportState, setExportState] = useState<ExportState>("idle");
+  const [exportFileName, setExportFileName] = useState<string | null>(null);
+  const exportResetTimer = useRef<number | null>(null);
   const titleId = useId();
   const counts = useMemo(() => countTiers(report.violations), [report.violations]);
   const health = healthFor(counts);
+
+  useEffect(() => {
+    return () => {
+      if (exportResetTimer.current !== null) {
+        window.clearTimeout(exportResetTimer.current);
+      }
+    };
+  }, []);
+
+  const handleExport = useCallback(() => {
+    try {
+      const filename = exportFilename(report);
+      const html = renderReportHtml(report);
+      triggerExport(html, filename);
+      setExportFileName(filename);
+      setExportState("success");
+      if (exportResetTimer.current !== null) {
+        window.clearTimeout(exportResetTimer.current);
+      }
+      exportResetTimer.current = window.setTimeout(() => {
+        setExportState("idle");
+        setExportFileName(null);
+      }, EXPORT_SUCCESS_MS);
+    } catch {
+      // A prior success may have armed the reset timer; clear it so a
+      // lingering timer can't wipe out this error alert (AC4).
+      if (exportResetTimer.current !== null) {
+        window.clearTimeout(exportResetTimer.current);
+        exportResetTimer.current = null;
+      }
+      setExportState("error");
+    }
+  }, [report]);
 
   function handleViewFix(violationId: string) {
     setPendingViewFix(violationId);
@@ -96,11 +137,31 @@ export function ReportSurface({ report }: { report: AuditReport }) {
             </span>
             <button
               type="button"
-              className="h-11 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              onClick={handleExport}
+              className={`h-11 min-w-0 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                exportState === "success" ? "max-w-[16rem] truncate" : ""
+              }`}
             >
-              Export report
+              {exportState === "success" && exportFileName
+                ? `Downloaded ${exportFileName}`
+                : "Export report"}
             </button>
           </div>
+          {exportState === "error" && (
+            <div
+              role="alert"
+              className="flex w-full flex-wrap items-center gap-3 rounded-md border border-error-container bg-error-container px-3 py-2 text-sm text-on-error-container"
+            >
+              <span>Export failed — please try again</span>
+              <button
+                type="button"
+                onClick={handleExport}
+                className="h-11 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Retry
+              </button>
+            </div>
+          )}
         </header>
 
         <div

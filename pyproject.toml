@@ -1,7 +1,7 @@
 [project]
-name = "a11yfix-engine"
+name = "darkhouse"
 version = "0.1.0"
-description = "A11yFix Engine — stateless Python FastAPI scan service (harvest stage: Playwright + axe-core)."
+description = "Darkhouse — stateless Python FastAPI scan service (harvest stage: Playwright + axe-core)."
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.141.0",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://a11yfix.local/contracts/scan-result.schema.json",
+  "$id": "https://darkhouse.local/contracts/scan-result.schema.json",
   "title": "ScanResult",
   "description": "Canonical ScanResult envelope produced by the Python scanner (harvest stage). Raw violations + vitals, validated on every scan output. schemaVersion is mandatory.",
   "type": "object",
@@ -39,6 +39,21 @@
       "type": "string",
       "format": "date-time",
       "description": "ISO-8601 UTC scan completion time."
+    },
+    "proof": {
+      "type": ["object", "null"],
+      "description": "Optional base64-encoded PNG proof of a high-severity broken experience. Null when the page had no critical/serious violation or the capture failed best-effort; absent from pre-proof consumers still validates.",
+      "additionalProperties": false,
+      "required": ["mimeType", "dataBase64"],
+      "properties": {
+        "mimeType": {
+          "const": "image/png"
+        },
+        "dataBase64": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
     }
   },
   "definitions": {

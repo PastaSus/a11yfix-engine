@@ -1,4 +1,4 @@
-# A11yFix Engine
+# Darkhouse
 
 Automated accessibility and performance remediation platform: scan a public URL and get structured accessibility violations + Core Web Vitals, translated into business impact and reviewable React/Tailwind patches.
 

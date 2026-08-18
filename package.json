@@ -1,12 +1,12 @@
 {
-  "name": "a11yfix-engine",
+  "name": "darkhouse",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @a11yfix/web dev",
-    "build": "pnpm --filter @a11yfix/web build",
-    "start": "pnpm --filter @a11yfix/web start",
-    "lint": "pnpm --filter @a11yfix/web lint"
+    "dev": "pnpm --filter @darkhouse/web dev",
+    "build": "pnpm --filter @darkhouse/web build",
+    "start": "pnpm --filter @darkhouse/web start",
+    "lint": "pnpm --filter @darkhouse/web lint"
   },
   "packageManager": "pnpm@11.19.0"
 }

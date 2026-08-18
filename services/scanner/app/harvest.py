@@ -14,6 +14,7 @@ navigation. Any navigation failure becomes a typed HarvestError.
 from __future__ import annotations
 
 import asyncio
+import base64
 import math
 import time
 from datetime import datetime, timezone
@@ -34,10 +35,12 @@ DOM_STABILITY_SAMPLE_MS = 500
 DOM_STABILITY_SAMPLES_REQUIRED = 3
 MAX_CONCURRENT_SCANS = 3
 SCAN_SLOT_TIMEOUT_MS = 30_000
+SCREENSHOT_TIMEOUT_MS = 20_000
+MAX_PROOF_BYTES = 2_000_000
 
 VITALS_INIT_SCRIPT = r"""
 (() => {
-  const vitals = window.__a11yfixVitals = { lcp: null, cls: null };
+  const vitals = window.__darkhouseVitals = { lcp: null, cls: null };
   try {
     new PerformanceObserver((list) => {
       const entries = list.getEntries();
@@ -119,7 +122,7 @@ def _vital_number(value: object) -> float | None:
 
 
 def collect_vitals(raw: dict[str, Any] | None) -> dict[str, Any]:
-    """Normalize the probe's `window.__a11yfixVitals` into the ScanResult shape.
+    """Normalize the probe's `window.__darkhouseVitals` into the ScanResult shape.
 
     Pure function (no browser I/O): takes the object already read from the page
     and returns `{ lcp, inp, cls }`. `lcp`/`cls` are numbers when measurable and
@@ -137,14 +140,43 @@ def collect_vitals(raw: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def has_high_severity(violations: list[dict[str, Any]]) -> bool:
+    """True when at least one violation carries a critical or serious impact.
+
+    Pure decision helper for the proof capture: a screenshot is only a relevant
+    proof of a *broken experience* when the page carries a high-severity
+    violation, so the whole capture step is skipped (and `proof` stays null) on
+    scans with only moderate/minor findings.
+    """
+    return any(candidate.get("impact") in {"critical", "serious"} for candidate in violations)
+
+
+def build_proof_block(png_bytes: bytes) -> dict[str, Any]:
+    """Encode a captured full-page PNG into the ScanResult `proof` block shape.
+
+    Pure helper (no browser I/O): `{ mimeType: "image/png", dataBase64 }` via
+    base64 over the raw bytes. The block only ever references the PNG constant
+    the contract pins with a schema `const`, keeping the shape format-agnostic
+    for a future cropped-capture switch.
+    """
+    return {
+        "mimeType": "image/png",
+        "dataBase64": base64.b64encode(png_bytes).decode("ascii"),
+    }
+
+
 def build_scan_result(
     url: str,
     scan_id: str,
     violations: list[dict[str, Any]],
     vitals: dict[str, Any] | None = None,
+    proof: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the ScanResult envelope. `vitals` defaults to all-null so callers
-    that don't capture vitals (pre-1.3 paths and tests) stay schema-conformant."""
+    that don't capture vitals (pre-1.3 paths and tests) stay schema-conformant;
+    `proof` is always emitted (`None` when the page had no high-severity
+    violation or the best-effort capture failed).
+    """
     if vitals is None:
         vitals = {"lcp": None, "inp": None, "cls": None}
     return {
@@ -154,7 +186,34 @@ def build_scan_result(
         "violations": violations,
         "vitals": {"lcp": vitals.get("lcp"), "inp": vitals.get("inp"), "cls": vitals.get("cls")},
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "proof": proof,
     }
+
+
+async def capture_proof(page: Any, violations: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Capture a full-page PNG proof of a high-severity broken experience.
+
+    Best-effort by design (mirrors the vitals pattern): skipped entirely (`None`)
+    when the page carries no critical/serious violation; otherwise a single
+    bounded `page.screenshot(full_page=True)` call inside SCREENSHOT_TIMEOUT_MS.
+    A timeout, any exception (Playwright or otherwise), no/empty bytes, or a
+    result larger than MAX_PROOF_BYTES all degrade to `None`, so a capture
+    problem can never fail the scan (NFR-2 over FR-12 completeness). This helper
+    never raises. `Any` keeps it decoupled from Playwright's page type so the
+    call/failure paths can be unit-tested without launching a browser.
+    """
+    if not has_high_severity(violations):
+        return None
+    try:
+        png_bytes = await asyncio.wait_for(
+            page.screenshot(full_page=True),
+            timeout=SCREENSHOT_TIMEOUT_MS / 1000,
+        )
+    except Exception:
+        return None
+    if not png_bytes or len(png_bytes) > MAX_PROOF_BYTES:
+        return None
+    return build_proof_block(png_bytes)
 
 
 def dom_has_stabilized(
@@ -235,7 +294,10 @@ async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
     released, always in the outermost `finally`). Vitals (LCP/CLS) are measured
     from the same page load as the axe violations via an init script registered
     before navigation; the vitals read itself is best-effort — a probe-read
-    failure falls back to all-null vitals rather than failing the scan. Raises
+    failure falls back to all-null vitals rather than failing the scan. When the
+    page carries a critical/serious violation the same open page is captured as
+    a full-page PNG proof (base64 on the envelope); a capture failure degrades
+    to `proof: null` rather than failing the scan. Raises
     HarvestError (`{ code, stage }` with code "unreachable" | "timeout" | "busy"
     | ..., HTTP by code: 502 for harvest failures, 503 for `busy`) on every
     failure path — never an unhandled exception or a hang.
@@ -282,11 +344,13 @@ async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
 
                     violations = extract_violations(axe_results)
                     try:
-                        raw_vitals: dict[str, Any] = await page.evaluate("() => window.__a11yfixVitals")
+                        raw_vitals: dict[str, Any] = await page.evaluate("() => window.__darkhouseVitals")
                     except (PlaywrightError, PlaywrightTimeoutError):
                         raw_vitals = {}
                     vitals = collect_vitals(raw_vitals)
-                    return build_scan_result(url, scan_id, violations, vitals)
+
+                    proof = await capture_proof(page, violations)
+                    return build_scan_result(url, scan_id, violations, vitals, proof)
                 finally:
                     await browser.close()
         except (PlaywrightError, PlaywrightTimeoutError) as exc:

@@ -26,7 +26,7 @@ context:
 - Every high-severity violation in the input MUST receive an impact block: `violation_id`, `business_problem`, `affected_segment`, `wcag_consequence`, `conversion_impact_estimate` — all non-empty, no placeholder text. The block's WCAG reference lives in `wcag_consequence` (schema has no separate WCAG-ref field; `violation_id` carries the source ID).
 - Impact copy uses hedging ("plausibly" / "may" / "roughly"); never false certainty or overclaimed causal attribution.
 - The returned `analyst_impacts` array IS the ranking: ordered highest-business-impact-first, and ordering is deterministic for identical inputs (severity weight, then `violation_id` tiebreak).
-- Translate-stage timing is recorded (start, end, duration, `scanId`) and logged (`[a11yfix] translate ...`); timings are observability, not an envelope field.
+- Translate-stage timing is recorded (start, end, duration, `scanId`) and logged (`[darkhouse] translate ...`); timings are observability, not an envelope field.
 - Full TLS-only OpenAI-compatible endpoints; errors are typed `{ code, message, stage }` with `stage: "translate"`.
 
 **Ask First:**
@@ -74,7 +74,7 @@ context:
 
 ## Spec Change Log
 
-- 2026-08-16: Implemented story 2.1. Added `apps/web/lib/translate/analyst.ts` (Analyst persona) and `apps/web/tests/analyst.test.ts` (14 unit tests). Verified: `pnpm --filter @a11yfix/web test` (57 pass), lint clean, build succeeds. Story moved to `review` in sprint-status.yaml.
+- 2026-08-16: Implemented story 2.1. Added `apps/web/lib/translate/analyst.ts` (Analyst persona) and `apps/web/tests/analyst.test.ts` (14 unit tests). Verified: `pnpm --filter @darkhouse/web test` (57 pass), lint clean, build succeeds. Story moved to `review` in sprint-status.yaml.
 - 2026-08-16 (review loop 1): Three-layer code review (blind-hunter, edge-case-hunter, verification-gap) merged. Patches applied: `chat()` now aborts via `AbortSignal.timeout(CHAT_TIMEOUT_MS)` so a hanging provider can't stall (timeout maps to a named `translate_error`); `translateAnalyst` guards a null/absent-`violations` scan with a typed `translate_error` and normalizes any non-`TranslateError` in the catch; `readAiConfig` strips one trailing `/` from `A11Y_AI_PROVIDER`; the translate error log now carries `message`; `highSeverityViolations` uses `HIGH_IMPACTS.includes(...)` and `affectedNodeCount` tolerates a missing `nodes` array; new test pins the built system prompt's hedging + JSON-array-only directives (a regression deleting the hedging instruction now fails a test — previously masked by canned mock text). Deferred entries logged in `deferred-work.md` (schema-version scheme, contract-types generation + runtime schema validation, MAX_TOKENS budget/finish_reason, JSON bracket-slicing via prompt-wrapped replies, URL passthrough to provider). Rejected with evidence: snake_case analyst_impacts/architect_patches names match the schema exactly; no preflight key check is correct (keyless providers supported); `nodes`/`vitals` presence is contract-guaranteed; non-streaming is the default so `stream:false` is unnecessary. KEEP: injectable `fetch`/`now` deps pattern, deterministic severity→id ranking, `rate_limited` vs `translate_error` split mapping to story 1.4's paused surface, typed-error envelope `{ code, message, stage }`.
 - 2026-08-16: Approved final by user ([A] Approve final, review loop 1). Story closed `done`; sprint-status.yaml updated (2-1 done, 2-2 in-progress); spec status set `done`. Proceeding to story 2.2 (Architect persona).
 
@@ -88,9 +88,9 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @a11yfix/web test` -- expected: all vitest suites including new `analyst.test.ts` pass.
-- `pnpm --filter @a11yfix/web lint` -- expected: clean ESLint.
-- `pnpm --filter @a11yfix/web build` -- expected: typecheck + build succeed.
+- `pnpm --filter @darkhouse/web test` -- expected: all vitest suites including new `analyst.test.ts` pass.
+- `pnpm --filter @darkhouse/web lint` -- expected: clean ESLint.
+- `pnpm --filter @darkhouse/web build` -- expected: typecheck + build succeed.
 
 **Manual checks (if no CLI):**
 - Point `A11Y_AI_PROVIDER` at a local OpenAI-compatible mock and confirm a live `translateAnalyst` run logs the translate timings and returns an envelope matching `contracts/audit-report.schema.json`.

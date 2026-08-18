@@ -96,6 +96,27 @@ describe("translateAnalyst", () => {
     }
   });
 
+  it("carries a populated proof block from the ScanResult into the AuditReport unchanged", async () => {
+    const proof = { mimeType: "image/png", dataBase64: "iVBORw0KGgo=" };
+    const fake = makeFake(
+      vi.fn().mockResolvedValue(chatResponse(JSON.stringify([block("button-name"), block("color-contrast")]))),
+    );
+
+    const report = await translateAnalyst({ ...SCAN, proof }, { fetch: fake.fetch });
+
+    expect(report.proof).toEqual(proof);
+  });
+
+  it("emits a null proof when the ScanResult carries no proof block", async () => {
+    const fake = makeFake(
+      vi.fn().mockResolvedValue(chatResponse(JSON.stringify([block("button-name"), block("color-contrast")]))),
+    );
+
+    const report = await translateAnalyst(SCAN, { fetch: fake.fetch });
+
+    expect(report.proof).toBeNull();
+  });
+
   it("re-ranks the provider's blocks deterministically (critical before serious, then id)", async () => {
     const fake = makeFake(
       vi
@@ -263,8 +284,8 @@ describe("translateAnalyst", () => {
 
     await translateAnalyst(SCAN, { fetch: fake.fetch, now: () => times.shift() ?? 0 });
 
-    const startCall = logSpy.mock.calls.find((args) => args[0] === "[a11yfix] translate start");
-    const endCall = logSpy.mock.calls.find((args) => args[0] === "[a11yfix] translate end");
+    const startCall = logSpy.mock.calls.find((args) => args[0] === "[darkhouse] translate start");
+    const endCall = logSpy.mock.calls.find((args) => args[0] === "[darkhouse] translate end");
     expect(startCall?.[1]).toMatchObject({ scanId: SCAN.scanId });
     expect(endCall?.[1]).toMatchObject({ scanId: SCAN.scanId, durationMs: 50, analystImpacts: 2 });
   });

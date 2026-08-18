@@ -6,8 +6,8 @@ status: 'done'
 baseline_commit: '5223bdcd056f09ef5ec07e82bc9a0e1293970f33'
 review_loop_iteration: 1
 context:
-  - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/DESIGN.md'
-  - '_bmad-output/planning-artifacts/ux-designs/ux-a11yfix-engine-2026-08-12/EXPERIENCE.md'
+  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/DESIGN.md'
+  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md'
   - '_bmad-output/implementation-artifacts/spec-3-1-establish-the-design-foundation-and-report-surface.md'
   - '_bmad-output/implementation-artifacts/spec-2-1-translate-violations-into-business-impact-analyst-persona.md'
   - '_bmad-output/implementation-artifacts/epic-3-context.md'
@@ -99,7 +99,7 @@ _(Append-only; populated by step-04 review loops.)_
 - [x] [Review][Patch] P-3 — Metric tiles use `rounded-2xl` outside DESIGN.md's rounding scale. Spec now pins in-scale `rounded-lg` tiles.
 - [x] [Review][Patch] P-4 — Metric figures' tabular/large styling (`tabular-nums`, `text-4xl`, `font-bold`) unpinned. Spec's tasks now require tests asserting the figure styling so DESIGN.md's tabular-figures invariant can't silently drop.
 - [x] [Review][Reject] R-1 — `countTiers` runs twice per render (report-surface + client-view). Rejected: `AuditReport` is immutable (ADR-4), the two reads cannot diverge, and the duplicate is a trivial pass over a bounded array.
-- [x] [Review][Reject] R-2 — Defensive null-guards on `analyst_impacts`/fields. Rejected: the `AuditReport`/`AnalystImpact` TS types and the pushed schema make these fields required; the web tier gains runtime schema validation under the deferred `@a11yfix/contracts` item.
+- [x] [Review][Reject] R-2 — Defensive null-guards on `analyst_impacts`/fields. Rejected: the `AuditReport`/`AnalystImpact` TS types and the pushed schema make these fields required; the web tier gains runtime schema validation under the deferred `@darkhouse/contracts` item.
 - [x] [Review][Reject] R-3 — Duplicate pluralization logic (`metricPhrase` vs `healthFor`). Rephrased as a rejection-with-fix: folded into the spec (shared `countPhrase` helper) rather than treated as independent noise.
 - [x] [Review][Reject] R-4 — Spec change-log wording vs sprint-status drift. Rejected: the approval entry is an accurate historical record at write time; the subsequent status moves are tracked by `sprint-status.yaml`.
 - [x] [Review][Defer] W-1 — Focus drops to `<body>` after view-fix (ClientView unmounts). Deferred to 3.3 where the focus target is the real Developer row; recorded in `deferred-work.md`.
@@ -115,7 +115,7 @@ _(Append-only; populated by step-04 review loops.)_
 - [x] [Review][Patch] P-6 — All N "view fix" buttons share the accessible name "View fix"; distinguishable names required for the list. Fix: per-button accessible name includes the item (e.g. `aria-label={View fix for ${business_problem}}`, visible text unchanged at "View fix"); test name matchers updated accordingly.
 - [x] [Review][Patch] P-7 — Priority container's ordered-list semantics unpinned: `client-view.test.tsx` asserts `listitem`s but never that the container is an `<ol>`, so a regresion to `<ul>` stays green while losing ranked semantics the spec pins. Fix: assert the container `tagName === "OL"`.
 - [x] [Review][Patch] P-8 — The "no auto-scroll (banned interaction)" constraint has no direct assertion; jsdom's `window.scrollTo` no-ops silently and `Element.prototype.scrollIntoView` is undefined, so a scroll regression ships undetected. Fix: stub `window.scrollTo`/`scrollIntoView` and assert untouched in the view-fix test (mirror the NO_RESCAN fetch-stub pattern).
-- [x] [Review][Patch] P-9 — `report-surface.test.tsx` hardcodes the storage key literal `"a11yfix:audience"` instead of the exported `AUDIENCE_STORAGE_KEY`, so a key rename breaks silently. Fix: import and use the constant.
+- [x] [Review][Patch] P-9 — `report-surface.test.tsx` hardcodes the storage key literal `"darkhouse:audience"` instead of the exported `AUDIENCE_STORAGE_KEY`, so a key rename breaks silently. Fix: import and use the constant.
 - [x] [Review][Patch] P-10 — Fixture builders duplicated and drifted between `report-surface.test.tsx` (`helpUrl: null`, `analyst_impacts: []` then mutated) and `client-view.test.tsx` (Deque `helpUrl`, impacts as constructor param). Fix: extract a shared `apps/web/tests/fixtures.ts` used by both suites, aligned on the schema shape.
 - [x] [Review][Reject] — Priority list must re-sort by severity: rejected, the array IS the Analyst's ranking and the spec pins array order in/array order out (contradicts Always "No re-sorting").
 - [x] [Review][Reject] — `analyst_impacts`/violation reconciliation (dup ids, dangling ids): rejected, 2.1 drops duplicates/unknowns and emits exactly one block per high-severity violation; schema makes the fields required.
@@ -143,9 +143,9 @@ _(Append-only; populated by step-04 review loops.)_
 ## Verification
 
 **Commands:**
-- `pnpm --filter @a11yfix/web test` -- expected: new `client-view` suites green alongside the existing (~127) tests.
-- `pnpm --filter @a11yfix/web lint` -- expected: clean.
-- `pnpm --filter @a11yfix/web build` -- expected: succeeds under Next 16 Turbopack.
+- `pnpm --filter @darkhouse/web test` -- expected: new `client-view` suites green alongside the existing (~127) tests.
+- `pnpm --filter @darkhouse/web lint` -- expected: clean.
+- `pnpm --filter @darkhouse/web build` -- expected: succeeds under Next 16 Turbopack.
 
 **Manual checks (if no CLI):**
 - The surface is verified by tests only (no route, matching 3.1). For visual sanity, temporarily mount a fixture `AuditReport` on a scratch page and confirm the metric block + priority list render in the established palette and wrap cleanly in `pnpm dev`.

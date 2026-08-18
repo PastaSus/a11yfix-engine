@@ -119,6 +119,21 @@ describe("translateArchitect", () => {
     }
   });
 
+  it("preserves the proof block through the returned audit report", async () => {
+    const proof = { mimeType: "image/png", dataBase64: "iVBORw0KGgo=" };
+    const fake = makeFake(
+      vi.fn().mockResolvedValue(chatResponse(JSON.stringify([patch("color-contrast"), patch("button-name")]))),
+    );
+
+    const report = await translateArchitect({ ...REPORT, proof }, { fetch: fake.fetch });
+
+    expect(report.proof).toEqual(proof);
+    expect(report.architect_patches.map((p) => p.rationale.match(/button-name|color-contrast/g)?.[0])).toEqual([
+      "color-contrast",
+      "button-name",
+    ]);
+  });
+
   it("stamps status proposed from a constant and drops any provider-returned status", async () => {
     const fake = makeFake(
       vi
@@ -353,8 +368,8 @@ describe("translateArchitect", () => {
 
     await translateArchitect(REPORT, { fetch: fake.fetch, now: () => times.shift() ?? 0 });
 
-    const startCall = logSpy.mock.calls.find((args) => args[0] === "[a11yfix] translate start");
-    const endCall = logSpy.mock.calls.find((args) => args[0] === "[a11yfix] translate end");
+    const startCall = logSpy.mock.calls.find((args) => args[0] === "[darkhouse] translate start");
+    const endCall = logSpy.mock.calls.find((args) => args[0] === "[darkhouse] translate end");
     expect(startCall?.[1]).toMatchObject({ scanId: REPORT.scanId });
     expect(endCall?.[1]).toMatchObject({ scanId: REPORT.scanId, durationMs: 50, architectPatches: 2 });
   });

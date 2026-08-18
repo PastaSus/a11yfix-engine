@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { ReportSurface } from "@/components/report-surface";
 import { AUDIENCE_STORAGE_KEY } from "@/components/audience-toggle";
 import { severityTier } from "@/lib/severity";
@@ -11,10 +11,25 @@ const NATIVE_SCROLL_INTO_VIEW = Object.getOwnPropertyDescriptor(
   "scrollIntoView",
 );
 
+// Captured at module load so the export-flow tests can stub the anchor click
+// and restore it afterward (mirrors the pattern used in `export.test.ts`).
+const NATIVE_ANCHOR_CLICK = Object.getOwnPropertyDescriptor(
+  HTMLAnchorElement.prototype,
+  "click",
+);
+
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  delete (URL as { createObjectURL?: unknown }).createObjectURL;
+  delete (URL as { revokeObjectURL?: unknown }).revokeObjectURL;
+  if (NATIVE_ANCHOR_CLICK) {
+    Object.defineProperty(HTMLAnchorElement.prototype, "click", NATIVE_ANCHOR_CLICK);
+  } else {
+    delete (HTMLAnchorElement.prototype as { click?: unknown }).click;
+  }
   if (NATIVE_SCROLL_INTO_VIEW) {
     Object.defineProperty(Element.prototype, "scrollIntoView", NATIVE_SCROLL_INTO_VIEW);
   } else {
@@ -37,6 +52,27 @@ function countChip(phrase: string): HTMLElement {
     if (!element) return false;
     return element.textContent?.replace(/\s+/g, " ").trim() === phrase;
   });
+}
+
+/**
+ * Stubs the browser download seam (`URL.createObjectURL` → anchor download →
+ * `URL.revokeObjectURL`) that `triggerExport` exercises, exactly as
+ * `export.test.ts` does. Returns the mocks so the test can assert each call.
+ */
+function stubDownload(): {
+  createObjectURL: ReturnType<typeof vi.fn>;
+  revokeObjectURL: ReturnType<typeof vi.fn>;
+} {
+  const createObjectURL = vi.fn(() => "blob:export-test");
+  const revokeObjectURL = vi.fn();
+  URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL as unknown as typeof URL.revokeObjectURL;
+  Object.defineProperty(HTMLAnchorElement.prototype, "click", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(),
+  });
+  return { createObjectURL, revokeObjectURL };
 }
 
 describe("severityTier", () => {
@@ -232,16 +268,203 @@ describe("ReportSurface", () => {
     expect(screen.getByText("1 critical issue")).not.toBeNull();
   });
 
-  it("Export stays an inert placeholder: present, focusable, and a no-op click", () => {
+  it("EXPORT_A11Y: Export is a native, labelled, focusable button (≥44px) that never calls fetch", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    stubDownload();
     render(<ReportSurface report={EMPTY_REPORT} />);
     const exportButton = screen.getByRole("button", { name: "Export report" });
     expect(exportButton.tagName).toBe("BUTTON");
     expect(exportButton.className).toContain("h-11");
     expect(exportButton.className).toContain("focus-visible:outline-2");
-    expect(() => fireEvent.click(exportButton)).not.toThrow();
+    fireEvent.click(exportButton);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("EXPORT_DOWNLOAD: clicking Export composes the report blob and downloads {hostname}-{date}.html", () => {
+    const report = makeReport(
+      [makeViolation("critical", "v-c1")],
+      [
+        makeImpact("v-c1", {
+          business_problem: "Checkout forms lose entered data on a validation failure.",
+          affected_segment: "Shoppers on the product and checkout pages.",
+          wcag_consequence: "Fails WCAG 3.3.3 Error Suggestion; users may abandon the purchase.",
+          conversion_impact_estimate: "Plausibly blocks a share of checkout completions.",
+        }),
+      ],
+    );
+    const { createObjectURL, revokeObjectURL } = stubDownload();
+    const appendChild = vi.spyOn(document.body, "appendChild");
+    render(<ReportSurface report={report} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob).toBeInstanceOf(Blob);
+    // The spy is set before render(), so `render` itself appends the surface
+    // container. Locate the actual anchor append within the call history.
+    const anchorCall = appendChild.mock.calls.find(
+      ([node]) => (node as HTMLElement).tagName === "A",
+    );
+    const anchor = anchorCall?.[0] as HTMLAnchorElement;
+    expect(anchor).toBeDefined();
+    expect(anchor.tagName).toBe("A");
+    expect(anchor.download).toBe("darkhouse-report-example-com-2026-08-15.html");
+    expect(anchor.href).toBe("blob:export-test");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:export-test");
+  });
+
+  it("EXPORT_WITH_PROOF: a proof-bearing report downloads HTML containing the proof section, with no fetch", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const report = makeReport(
+      [makeViolation("critical", "v-c1")],
+      [
+        makeImpact("v-c1", {
+          business_problem: "Checkout forms lose entered data on a validation failure.",
+          affected_segment: "Shoppers on the product and checkout pages.",
+          wcag_consequence: "Fails WCAG 3.3.3 Error Suggestion; users may abandon the purchase.",
+          conversion_impact_estimate: "Plausibly blocks a share of checkout completions.",
+        }),
+      ],
+      [],
+      { mimeType: "image/png", dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAA==" },
+    );
+    const { createObjectURL } = stubDownload();
+    render(<ReportSurface report={report} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const html = await blob.text();
+    expect(html).toContain('<section class="card proof">');
+    expect(html).toContain('src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA=="');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("EXPORT_WITH_PROOF: a malformed proof (non-image/png) is omitted from the downloaded HTML", async () => {
+    const report = makeReport(
+      [makeViolation("critical", "v-c1")],
+      [makeImpact("v-c1")],
+      [],
+      { mimeType: "text/html", dataBase64: "SGVsbG8gd29ybGQ=" },
+    );
+    const { createObjectURL } = stubDownload();
+    render(<ReportSurface report={report} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const html = await blob.text();
+    expect(html).not.toContain("card proof");
+    expect(html).not.toContain("data:text/html");
+    expect(html).toContain('<section class="card" aria-label="Priority issues">');
+  });
+
+  it("EXPORT_SUCCESS: the button briefly shows the truncated filename, then resets", async () => {
+    vi.useFakeTimers();
+    try {
+      stubDownload();
+      render(<ReportSurface report={EMPTY_REPORT} />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+      });
+      const successButton = screen.getByRole("button", {
+        name: "Downloaded darkhouse-report-example-com-2026-08-15.html",
+      });
+      expect(successButton).not.toBeNull();
+      // Long filenames truncate gracefully on narrow surfaces.
+      expect(successButton.className).toContain("max-w-[16rem]");
+      expect(successButton.className).toContain("truncate");
+
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(screen.queryByRole("button", { name: /Downloaded/ })).toBeNull();
+      expect(screen.getByRole("button", { name: "Export report" })).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("EXPORT_FAILURE: a failed download shows an inline alert; Retry recovers to success", async () => {
+    let failing = true;
+    const createObjectURL = vi.fn(() => {
+      if (failing) throw new Error("blob unavailable");
+      return "blob:export-test";
+    });
+    URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn() as unknown as typeof URL.revokeObjectURL;
+    Object.defineProperty(HTMLAnchorElement.prototype, "click", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    render(<ReportSurface report={EMPTY_REPORT} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+
+    expect(screen.getByRole("alert")).not.toBeNull();
+    expect(screen.getByText("Export failed — please try again")).not.toBeNull();
+    const retry = screen.getByRole("button", { name: "Retry" });
+    expect(retry).not.toBeNull();
+    // The original Export button never dead-ends while in the error state.
+    expect(screen.getByRole("button", { name: "Export report" })).not.toBeNull();
+
+    failing = false;
+    fireEvent.click(retry);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: "Downloaded darkhouse-report-example-com-2026-08-15.html",
+      }),
+    ).not.toBeNull();
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+  });
+
+  it("EXPORT_ERROR_NOT_OVERWRITTEN: a failure right after a success keeps the error alert (stale success timer cleared)", async () => {
+    vi.useFakeTimers();
+    try {
+      let failing = false;
+      const createObjectURL = vi.fn(() => {
+        if (failing) throw new Error("blob unavailable");
+        return "blob:export-test";
+      });
+      URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = vi.fn() as unknown as typeof URL.revokeObjectURL;
+      Object.defineProperty(HTMLAnchorElement.prototype, "click", {
+        configurable: true,
+        writable: true,
+        value: vi.fn(),
+      });
+      render(<ReportSurface report={EMPTY_REPORT} />);
+
+      // Success arms the ~2 s reset timer.
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+      });
+      expect(
+        screen.getByRole("button", {
+          name: "Downloaded darkhouse-report-example-com-2026-08-15.html",
+        }),
+      ).not.toBeNull();
+
+      // Within the success window a second export fails.
+      failing = true;
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /Downloaded/ }));
+      });
+      expect(screen.getByRole("alert")).not.toBeNull();
+
+      // The stale success timer must not clear the error alert early.
+      vi.advanceTimersByTime(3000);
+      await act(async () => {});
+      expect(screen.getByRole("alert")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Retry" })).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("health chip names exactly the present bands: moderate-only report", () => {

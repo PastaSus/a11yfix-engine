@@ -27,14 +27,14 @@ describe("AudienceToggle", () => {
     const { rerender } = render(<AudienceToggle value="client" onChange={onChange} />);
     fireEvent.click(buttons().developer);
     expect(onChange).toHaveBeenCalledWith("developer");
-    expect(window.sessionStorage.getItem("a11yfix:audience")).toBe("developer");
+    expect(window.sessionStorage.getItem("darkhouse:audience")).toBe("developer");
     rerender(<AudienceToggle value="developer" onChange={onChange} />);
     expect(buttons().developer.getAttribute("aria-pressed")).toBe("true");
     expect(buttons().client.getAttribute("aria-pressed")).toBe("false");
   });
 
   it("restores a stored Developer selection after mount", () => {
-    window.sessionStorage.setItem("a11yfix:audience", "developer");
+    window.sessionStorage.setItem("darkhouse:audience", "developer");
     const onChange = vi.fn();
     const { rerender } = render(<AudienceToggle value="client" onChange={onChange} />);
     expect(onChange).toHaveBeenCalledWith("developer");
@@ -50,7 +50,7 @@ describe("AudienceToggle", () => {
   });
 
   it("ignores an unknown stored value and stays on Client", () => {
-    window.sessionStorage.setItem("a11yfix:audience", "admin");
+    window.sessionStorage.setItem("darkhouse:audience", "admin");
     const onChange = vi.fn();
     render(<AudienceToggle value="client" onChange={onChange} />);
     expect(onChange).not.toHaveBeenCalled();

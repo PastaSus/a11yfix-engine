@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://a11yfix.local/contracts/audit-report.schema.json",
+  "$id": "https://darkhouse.local/contracts/audit-report.schema.json",
   "title": "AuditReport",
   "description": "Enriched AuditReport envelope (second schema version of the ScanResult envelope). Adds analyst impacts and architect patches; consumed by the web tier starting 1.2. schemaVersion is mandatory.",
   "type": "object",
@@ -37,6 +37,21 @@
     "timestamp": {
       "type": "string",
       "format": "date-time"
+    },
+    "proof": {
+      "type": ["object", "null"],
+      "description": "Optional base64-encoded PNG proof of a high-severity broken experience, carried verbatim from ScanResult. Null when the page had no critical/serious violation or the capture failed best-effort; absent from pre-proof consumers still validates.",
+      "additionalProperties": false,
+      "required": ["mimeType", "dataBase64"],
+      "properties": {
+        "mimeType": {
+          "const": "image/png"
+        },
+        "dataBase64": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
     },
     "analyst_impacts": {
       "type": "array",

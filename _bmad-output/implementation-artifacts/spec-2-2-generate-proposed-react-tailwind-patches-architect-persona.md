@@ -25,7 +25,7 @@ context:
 - Provider/model are config-driven via `A11Y_AI_PROVIDER`, `A11Y_AI_MODEL`, `A11Y_AI_KEY` with the same free-tier defaults as 2.1; API key optional (keyless providers supported).
 - Exactly one patch per prioritized (analyst_impact) violation, in the same order. `architect_patch` has no `violation_id` field in the schema, so positional order is the only sound violation↔patch link; the rationale also references the violation id and WCAG rule in prose.
 - Each patch passes validation: `diff` is a git-style unified diff (contains at least one `+` and one `-` line), `rationale` is a non-empty string referencing the violation id and WCAG rule, `wcag_rule` is non-empty. On any error nothing partial is written; the run fails typed.
-- Translate-stage timings recorded and logged (`[a11yfix] translate ...`) keyed by `scanId`; errors typed `{ code, message, stage: "translate" }`.
+- Translate-stage timings recorded and logged (`[darkhouse] translate ...`) keyed by `scanId`; errors typed `{ code, message, stage: "translate" }`.
 
 **Ask First:**
 - None new. OQ-1 (concrete free-tier default provider) is still open from 2.1; reuse the placeholder defaults — works once `A11Y_AI_PROVIDER` is supplied.
@@ -75,7 +75,7 @@ context:
 
 ## Spec Change Log
 
-- 2026-08-16: Implemented story 2.2. Added `apps/web/lib/translate/client.ts` (shared provider client extracted from analyst.ts), refactored `apps/web/lib/translate/analyst.ts` to import it (public API + 14 tests unchanged), added `apps/web/lib/translate/architect.ts` (Architect persona: `translateArchitect` with input guard, positional one-patch-per-impact prompt, validated parser that stamps `status: "proposed"` from a const and drops any provider-returned status, exact coverage + ordering enforcement, `MAX_PATCH_TOKENS = 2048`), and `apps/web/tests/architect.test.ts` (19 tests). Verified: `pnpm --filter @a11yfix/web test` (77 pass, 58 regression + 19 new), lint clean, build succeeds. Step-03 verification: all Tasks & AC met; Matrix Test Audit passed (every I/O matrix row covered by a passing test). Next: step-04 review.
+- 2026-08-16: Implemented story 2.2. Added `apps/web/lib/translate/client.ts` (shared provider client extracted from analyst.ts), refactored `apps/web/lib/translate/analyst.ts` to import it (public API + 14 tests unchanged), added `apps/web/lib/translate/architect.ts` (Architect persona: `translateArchitect` with input guard, positional one-patch-per-impact prompt, validated parser that stamps `status: "proposed"` from a const and drops any provider-returned status, exact coverage + ordering enforcement, `MAX_PATCH_TOKENS = 2048`), and `apps/web/tests/architect.test.ts` (19 tests). Verified: `pnpm --filter @darkhouse/web test` (77 pass, 58 regression + 19 new), lint clean, build succeeds. Step-03 verification: all Tasks & AC met; Matrix Test Audit passed (every I/O matrix row covered by a passing test). Next: step-04 review.
 - 2026-08-16 (review loop 1): Three-layer review (blind-hunter, edge-case-hunter, verification-gap) merged. 8 patches + 2 test-coverage fixes applied (via the step-03 subagent): `chat()` timeout detection now guards the `DOMException` reference for runtimes without the global; `readAiConfig` strips all trailing slashes (was one); `TranslateError` accepts an optional `{ cause }` and `chat()` attaches the underlying fetch error as `cause` for diagnosability (no body logged); new tests pin the provider-timeout message, the `JSON.parse`-failure branch of `extractJsonArray` (`"[not json]"`), the no-usable-content branch of `chat()` (`{ choices: [] }`), trailing-slash env normalization, and the previously-unpinned `translateAnalyst` invalid-input guard (null/undefined `violations` → typed error, zero fetch); trailing newlines added to `analyst.ts`/`architect.ts`/`analyst.test.ts`. Verified: 82 tests pass (77 → 82, +5), lint clean, build succeeds. Rejected with evidence: no-wiring concern is explicitly deferred to a later story (dead code is intentional this story); "extra keys not rejected" is by design — the module is a filter that drops provider fields (e.g. `status`) and the const-stamp test asserts exact keys; `rate_limited` no-retry and `extractJsonArray` bracket-slicing were already logged as deferred in spec-2-1's review; validator strictness, fixed token budgets, and ungrounded diffs are product-level and recorded in `deferred-work.md`. KEEP: the shared `client.ts` extraction and unchanged Analyst API/tests (regression guard pattern), positional one-patch-per-impact mapping with exact count + order enforcement, `status: "proposed"` const-stamp that ignores provider status, prompt-body directive assertions (unified-diff + one-object-per-violation-in-order), injectable `fetch`/`now` deps, and the logged `{ code, message, stage }` envelope.
 
 ## Design Notes
@@ -88,6 +88,6 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @a11yfix/web test` -- expected: all suites pass, including the unchanged `analyst.test.ts` (client-refactor regression guard) and the new `architect.test.ts`.
-- `pnpm --filter @a11yfix/web lint` -- expected: clean ESLint.
-- `pnpm --filter @a11yfix/web build` -- expected: typecheck + build succeed.
+- `pnpm --filter @darkhouse/web test` -- expected: all suites pass, including the unchanged `analyst.test.ts` (client-refactor regression guard) and the new `architect.test.ts`.
+- `pnpm --filter @darkhouse/web lint` -- expected: clean ESLint.
+- `pnpm --filter @darkhouse/web build` -- expected: typecheck + build succeed.

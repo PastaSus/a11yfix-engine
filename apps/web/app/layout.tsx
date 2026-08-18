@@ -13,7 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "A11yFix Engine",
+  title: "Darkhouse",
   description:
     "Automated web accessibility and performance audits with human-ready remediation guidance.",
 };

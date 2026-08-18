@@ -1,9 +1,9 @@
 ---
-name: A11yFix Engine
+name: Darkhouse
 status: draft
 sources:
-  - {planning_artifacts}/prds/prd-a11yfix-engine-2026-08-12/prd.md
-  - {planning_artifacts}/briefs/brief-a11yfix-engine-2026-08-12/brief.md
+  - {planning_artifacts}/prds/prd-darkhouse-2026-08-12/prd.md
+  - {planning_artifacts}/briefs/brief-darkhouse-2026-08-12/brief.md
 created: 2026-08-12
 updated: 2026-08-12
 colors:
@@ -83,14 +83,14 @@ spacing:
 
 ## Brand & Style
 
-A11yFix Engine presents as **Instrumental Precision**: a clinical, trustworthy tool interface that earns attention through restraint rather than decoration. The product's subject matter — accessibility and performance — demands credibility; the visual language answers with a quiet, engineering-grade confidence that suits both a business stakeholder making a budget decision and a developer reviewing a diff.
+Darkhouse presents as **Instrumental Precision**: a clinical, trustworthy tool interface that earns attention through restraint rather than decoration. The product's subject matter — accessibility and performance — demands credibility; the visual language answers with a quiet, engineering-grade confidence that suits both a business stakeholder making a budget decision and a developer reviewing a diff.
 
 The register is **calm authority**. It avoids both the "left-panel enterprise gray" cliché and the "viral startup gradient" noise of consumer tools. Emphasis lands through semantic color and typographic hierarchy, never ornament.
 
 ## Colors
 
 - **Slate (`#0f172a`)** is the ink on `surface` — text, active states, primary structure. Slate-based palette keeps the tool feeling technical without feeling cold.
-- **Indigo (`#4338ca`)** is the single brand accent — primary actions, active navigation, the "A11yFix" identity anchor. One accent, used sparingly.
+- **Indigo (`#4338ca`)** is the single brand accent — primary actions, active navigation, the "Darkhouse" identity anchor. One accent, used sparingly.
 - **Teal (`#0f766e`)** is the **pass / conforming** semantic — passed checks, applied patch confirmation. Distinct from indigo so "actionable" and "healthy" are never confused.
 - **Red (`#b91c1c`)** is **critical severity** — high-severity violations, failures. Always paired with text, never color-only.
 - **Amber (`#b45309`)** is **moderate severity** — medium-severity violations, warnings, in-progress states.
