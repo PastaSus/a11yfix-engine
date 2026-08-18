@@ -4,6 +4,7 @@ import {
   chat,
   extractJsonArray,
   readAiConfig,
+  resolveRetryConfig,
 } from "./client";
 import type { AnalystImpact, AuditReport, ChatMessage, TranslateDeps } from "./client";
 
@@ -153,7 +154,13 @@ export async function translateAnalyst(
     if (violations.length === 0) {
       analystImpacts = [];
     } else {
-      const content = await chat(config, buildTranslatePrompt(scanResult, violations), MAX_TOKENS, fetchLike);
+      const content = await chat(
+        config,
+        buildTranslatePrompt(scanResult, violations),
+        MAX_TOKENS,
+        fetchLike,
+        resolveRetryConfig(deps),
+      );
       analystImpacts = rankImpacts(parseImpacts(content, violations), violations);
     }
 

@@ -42,7 +42,53 @@ export type AuditReport = {
 export type TranslateDeps = {
   fetch?: typeof globalThis.fetch;
   now?: () => number;
+  maxRetries?: number;
+  retryBaseDelayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
 };
+
+export type RetryConfig = {
+  maxRetries: number;
+  retryBaseDelayMs: number;
+  sleep: (ms: number) => Promise<void>;
+};
+
+export const DEFAULT_MAX_RETRIES = 2;
+export const DEFAULT_RETRY_BASE_DELAY_MS = 1_000;
+
+// A rate-limit wait is capped so a stubborn provider never holds a scan hostage:
+// past this, the translate fails typed and the report surface offers manual retry.
+const MAX_RETRY_AFTER_MS = 30_000;
+
+function readEnvRetryNumber(env: NodeJS.ProcessEnv, key: string): number | null {
+  const raw = env[key];
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+export function resolveRetryConfig(
+  deps: Pick<TranslateDeps, "maxRetries" | "retryBaseDelayMs" | "sleep"> = {},
+  env: NodeJS.ProcessEnv = process.env,
+): RetryConfig {
+  return {
+    maxRetries: deps.maxRetries ?? readEnvRetryNumber(env, "A11Y_AI_MAX_RETRIES") ?? DEFAULT_MAX_RETRIES,
+    retryBaseDelayMs:
+      deps.retryBaseDelayMs ?? readEnvRetryNumber(env, "A11Y_AI_RETRY_BASE_MS") ?? DEFAULT_RETRY_BASE_DELAY_MS,
+    sleep: deps.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms))),
+  };
+}
+
+function retryAfterMs(headers: Headers | undefined): number | null {
+  const raw = headers?.get("retry-after");
+  if (!raw) return null;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(seconds * 1000, MAX_RETRY_AFTER_MS);
+  }
+  // The HTTP-date form is not honored; exponential backoff is used instead.
+  return null;
+}
 
 export type TranslateErrorCode = "rate_limited" | "translate_error";
 
@@ -87,35 +133,52 @@ export async function chat(
   messages: ChatMessage[],
   maxTokens: number,
   fetchLike: typeof globalThis.fetch,
+  retry: RetryConfig = resolveRetryConfig(),
 ): Promise<string> {
+  const body = JSON.stringify({
+    model: config.model,
+    messages,
+    temperature: 0,
+    max_tokens: maxTokens,
+  });
+
+  let attempt = 0;
   let res: globalThis.Response;
-  try {
-    res = await fetchLike(`${config.provider}${CHAT_PATH}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(config.key ? { Authorization: `Bearer ${config.key}` } : {}),
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages,
-        temperature: 0,
-        max_tokens: maxTokens,
-      }),
-      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
-    });
-  } catch (error) {
-    const timedOut =
-      error instanceof Error &&
-      (error.name === "TimeoutError" ||
-        (typeof DOMException !== "undefined" &&
-          error.cause instanceof DOMException &&
-          error.cause.name === "TimeoutError"));
-    throw new TranslateError(
-      "translate_error",
-      timedOut ? "The AI provider request timed out." : "The AI provider could not be reached.",
-      { cause: error },
-    );
+
+  for (;;) {
+    let response: globalThis.Response;
+    try {
+      response = await fetchLike(`${config.provider}${CHAT_PATH}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(config.key ? { Authorization: `Bearer ${config.key}` } : {}),
+        },
+        body,
+        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
+      });
+    } catch (error) {
+      const timedOut =
+        error instanceof Error &&
+        (error.name === "TimeoutError" ||
+          (typeof DOMException !== "undefined" &&
+            error.cause instanceof DOMException &&
+            error.cause.name === "TimeoutError"));
+      throw new TranslateError(
+        "translate_error",
+        timedOut ? "The AI provider request timed out." : "The AI provider could not be reached.",
+        { cause: error },
+      );
+    }
+
+    if (response.status === 429 && attempt < retry.maxRetries) {
+      const delay = retryAfterMs(response.headers) ?? retry.retryBaseDelayMs * 2 ** attempt;
+      await retry.sleep(delay);
+      attempt += 1;
+      continue;
+    }
+    res = response;
+    break;
   }
 
   if (res.status === 429) {
@@ -125,14 +188,14 @@ export async function chat(
     throw new TranslateError("translate_error", `The AI provider responded with HTTP ${res.status}.`);
   }
 
-  let body: unknown;
+  let bodyOut: unknown;
   try {
-    body = await res.json();
+    bodyOut = await res.json();
   } catch {
     throw new TranslateError("translate_error", "The AI provider returned an unreadable response.");
   }
 
-  const content = readChatContent(body);
+  const content = readChatContent(bodyOut);
   if (typeof content !== "string" || content.trim() === "") {
     throw new TranslateError("translate_error", "The AI provider returned no usable content.");
   }

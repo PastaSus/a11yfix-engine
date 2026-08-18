@@ -11,7 +11,7 @@ import { validateScanUrl } from "@/lib/validate-scan-url";
 import type { AuditReport } from "@/lib/translate/client";
 
 const EMPTY_STATE_COPY = "Run your first audit. Darkhouse will check it for accessibility and core web vitals, then walk you through the fixes.";
-const PAUSED_COPY = "Translation is waiting on a free-tier limit. Retrying.";
+const PAUSED_COPY = "The service hit a temporary limit. Wait a moment, then retry.";
 const GENERIC_FAILURE_HINT = "Something went wrong while scanning. Try again in a moment.";
 
 const STAGE_ANNOUNCEMENT: Record<StageName, string> = {
@@ -166,7 +166,7 @@ export function ScanForm() {
   return (
     <Fragment>
       <section
-        className="mx-auto w-full max-w-2xl px-6 py-10"
+        className="mx-auto w-full max-w-2xl px-6 pb-12 pt-10"
         aria-labelledby="scan-form-heading"
       >
       <h2
@@ -176,14 +176,14 @@ export function ScanForm() {
         Run a new scan
       </h2>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-4">
+      <form onSubmit={handleSubmit} noValidate className="mt-5">
         <label
           htmlFor="scan-url"
           className="text-sm font-medium text-on-surface-variant"
         >
           Website URL
         </label>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
           <input
             ref={inputRef}
             id="scan-url"
@@ -216,13 +216,13 @@ export function ScanForm() {
       </form>
 
       {!hasRun && !submittedUrl && (
-        <p className="mt-6 rounded-md border border-outline bg-surface-container p-4 text-on-surface-variant">
+        <p className="mt-8 rounded-md border border-outline bg-surface-container p-5 text-on-surface-variant">
           {EMPTY_STATE_COPY}
         </p>
       )}
 
       {showStepper && (
-        <div className="mt-6" role="status" aria-live="polite">
+        <div className="mt-8" role="status" aria-live="polite">
           <p className="sr-only">{STAGE_ANNOUNCEMENT[stepperStage]}</p>
           <ProgressStepper current={stepperStage} />
         </div>
@@ -231,7 +231,7 @@ export function ScanForm() {
       {state.stage === "failed" && (
         <div
           role="alert"
-          className="mt-6 rounded-md border border-error-container bg-error-container p-4"
+          className="mt-6 rounded-md border border-error-container bg-error-container p-5"
         >
           <p className="font-medium text-on-error-container">{state.hint}</p>
           <button type="button" onClick={handleRetry} className={RETRY_CLASSES}>
@@ -244,7 +244,7 @@ export function ScanForm() {
         <div
           role="status"
           aria-live="polite"
-          className="mt-6 rounded-md border border-warning-container bg-warning-container p-4"
+          className="mt-6 rounded-md border border-warning-container bg-warning-container p-5"
         >
           <p className="font-medium text-on-warning-container">{PAUSED_COPY}</p>
           <button type="button" onClick={handleRetry} className={RETRY_CLASSES}>

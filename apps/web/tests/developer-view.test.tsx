@@ -176,6 +176,19 @@ describe("DeveloperView", () => {
     expect(within(cls).getByText("0.1")).not.toBeNull();
   });
 
+  it("vitals values render at dashboard precision (ms rounded, CLS to two decimals)", () => {
+    const report = {
+      ...makeReport([makeViolation("critical", "v-1")]),
+      vitals: { lcp: 1200.4, inp: 47.6, cls: 0.0523415 },
+    };
+    render(<DeveloperView report={report} pendingViewFix={null} />);
+
+    expect(screen.getByRole("group", { name: "LCP: 1200 ms" })).not.toBeNull();
+    expect(screen.getByRole("group", { name: "INP: 48 ms" })).not.toBeNull();
+    expect(screen.getByRole("group", { name: "CLS: 0.05" })).not.toBeNull();
+    expect(screen.getByText("0.05")).not.toBeNull();
+  });
+
   it("NULL_VITALS: null metrics show '—' with a 'not measured' screen-reader label", () => {
     const report = {
       ...makeReport([makeViolation("critical", "v-1")]),

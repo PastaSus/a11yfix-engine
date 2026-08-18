@@ -231,11 +231,13 @@ describe("translateArchitect", () => {
   it("rejects with a rate_limited translate error on HTTP 429", async () => {
     const fake = makeFake(vi.fn().mockResolvedValue(new Response("{}", { status: 429 })));
 
-    await expect(translateArchitect(REPORT, { fetch: fake.fetch })).rejects.toMatchObject({
+    await expect(translateArchitect(REPORT, { fetch: fake.fetch, maxRetries: 0 })).rejects.toMatchObject({
       code: "rate_limited",
       stage: "translate",
     });
-    await expect(translateArchitect(REPORT, { fetch: fake.fetch })).rejects.toBeInstanceOf(TranslateError);
+    await expect(translateArchitect(REPORT, { fetch: fake.fetch, maxRetries: 0 })).rejects.toBeInstanceOf(
+      TranslateError,
+    );
   });
 
   it("rejects with a translate error when the provider is unreachable", async () => {

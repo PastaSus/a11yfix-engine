@@ -3,7 +3,7 @@ import { ScanForm } from "@/components/scan-form";
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col bg-background text-on-surface">
-      <header className="mx-auto w-full max-w-2xl px-6 pt-12">
+      <header className="mx-auto w-full max-w-2xl px-6 pb-2 pt-14 sm:pt-20">
         <p className="flex items-center gap-2.5">
           <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-on-primary">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -18,10 +18,10 @@ export default function Home() {
             Darkhouse
           </span>
         </p>
-        <h1 className="mt-4 max-w-xl text-xl font-semibold leading-7 text-on-surface">
+        <h1 className="mt-6 max-w-xl text-2xl font-semibold leading-8 text-on-surface sm:text-3xl">
           Accessibility scans, human-ready remediation.
         </h1>
-        <p className="mt-1.5 max-w-xl text-on-surface-variant">
+        <p className="mt-3 max-w-xl text-base leading-6 text-on-surface-variant">
           Paste a public URL and Darkhouse audits it for accessibility and core web
           vitals, then explains the fixes in plain language for you and your clients.
         </p>

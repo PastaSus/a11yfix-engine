@@ -28,6 +28,18 @@ const VITALS_METRICS: { key: "lcp" | "inp" | "cls"; label: string; unit: string 
   { key: "cls", label: "CLS", unit: "" },
 ];
 
+// Raw vitals arrive at full measurement precision (e.g. CLS 0.0523415). The
+// dashboard presents them at dashboard precision: ms metrics round to whole
+// milliseconds, CLS to two decimals (the conventional web-vitals precision).
+// Formatting lives here, at the presentation edge, so the shared contracts
+// keep the exact measured value.
+function formatVitalsValue(metric: (typeof VITALS_METRICS)[number]["key"], value: number): string {
+  if (metric === "cls") {
+    return String(Number(value.toFixed(2)));
+  }
+  return String(Math.round(value));
+}
+
 function compareViolations(a: Violation, b: Violation, key: SortKey): number {
   switch (key) {
     case "severity":
@@ -120,10 +132,10 @@ export function DeveloperView({
   }, [pendingViewFix, onPendingConsumed]);
 
   return (
-    <section aria-label="Developer view" className="grid gap-6 pt-6">
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-md border border-outline bg-surface">
-          <h3 className="px-4 pb-2 pt-4 text-lg font-semibold">Violations</h3>
+    <section aria-label="Developer view" className="grid gap-6 pt-8">
+      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 rounded-md border border-outline bg-surface">
+          <h3 className="px-5 pb-3 pt-5 text-lg font-semibold">Violations</h3>
           <div className="overflow-x-auto pb-2">
             <table
               aria-label="Violations"
@@ -268,28 +280,29 @@ export function DeveloperView({
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
-        <div className="rounded-md border border-outline bg-surface-container p-4">
+      <div className="flex min-w-0 flex-col gap-6">
+        <div className="rounded-md border border-outline bg-surface-container p-5">
           <h3 className="text-lg font-semibold">Core Web Vitals</h3>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-3 lg:grid-cols-1">
             {VITALS_METRICS.map(({ key, label, unit }) => {
               const value = report.vitals[key];
               const measured = value !== null;
+              const displayValue = measured ? formatVitalsValue(key, value) : "\u2014";
               return (
                 <div
                   key={key}
                   role="group"
                   aria-label={
-                    measured ? `${label}: ${value}${unit ? ` ${unit}` : ""}` : `${label}: not measured`
+                    measured ? `${label}: ${displayValue}${unit ? ` ${unit}` : ""}` : `${label}: not measured`
                   }
-                  className="rounded-lg border border-outline bg-surface p-4"
+                  className="min-w-0 rounded-lg border border-outline bg-surface p-4"
                 >
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
                     {label}
                   </h4>
                   <p className="mt-1 flex items-baseline gap-1.5">
                     <span aria-hidden="true" className="text-3xl font-bold leading-none tabular-nums">
-                      {measured ? value : "\u2014"}
+                      {displayValue}
                     </span>
                     {unit && (
                       <span aria-hidden="true" className="text-sm text-on-surface-variant">
@@ -303,14 +316,14 @@ export function DeveloperView({
           </div>
         </div>
 
-        <div className="rounded-md border border-outline bg-surface p-4">
+        <div className="rounded-md border border-outline bg-surface p-5">
           <h3 className="text-lg font-semibold">Proposed fixes</h3>
           {report.architect_patches.length === 0 ? (
             <p className="mt-3 text-sm text-on-surface-variant">No generated patches</p>
           ) : (
             <div className="mt-4 grid gap-6">
               {report.architect_patches.map((patch, index) => (
-                <article key={index} className="grid gap-2">
+                <article key={index} className="grid min-w-0 gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-outline bg-surface-container px-2.5 py-0.5 font-mono text-xs font-medium">
                       {patch.wcag_rule}

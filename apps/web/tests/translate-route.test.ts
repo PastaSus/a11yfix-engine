@@ -129,6 +129,7 @@ describe("POST /api/translate", () => {
   });
 
   it("maps a provider 429 to a 503 rate_limited envelope", async () => {
+    vi.stubEnv("A11Y_AI_MAX_RETRIES", "0");
     const fetchMock = vi.fn().mockResolvedValue(chatResponse({}, 429));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -139,6 +140,24 @@ describe("POST /api/translate", () => {
       code: "rate_limited",
       stage: "translate",
     });
+  });
+
+  it("auto-retries a transient 429 and returns the audit report", async () => {
+    vi.stubEnv("A11Y_AI_RETRY_BASE_MS", "0");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(chatResponse({}, 429))
+      .mockResolvedValueOnce(chatResponse(ANALYST_BODY, 200))
+      .mockResolvedValueOnce(chatResponse(ARCHITECT_BODY, 200));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await callPost(JSON.stringify({ scan: SCAN }));
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.scanId).toBe(SCAN.scanId);
+    expect((body as { architect_patches: unknown[] }).architect_patches).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("maps a malformed provider body to a 502 translate_error envelope", async () => {
