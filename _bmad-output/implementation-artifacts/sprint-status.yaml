@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 08-13-2026
-last_updated: 08-17-2026
+last_updated: 08-18-2026
 project: darkhouse
 project_key: NOKEY
 tracking_system: file-system
@@ -56,5 +56,5 @@ development_status:
 
   epic-4: in-progress
   4-1-export-the-audit-report-as-a-diagnostic-report: done
-  4-2-include-broken-experience-proof-in-the-export: backlog
+  4-2-include-broken-experience-proof-in-the-export: done
   epic-4-retrospective: optional

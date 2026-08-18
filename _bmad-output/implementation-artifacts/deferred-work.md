@@ -106,3 +106,9 @@ Ledger of real findings surfaced in review that are not this story's problem. Re
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-render-the-client-view-business-summary.md`
   summary: `timestamp` is optional in `contracts/audit-report.schema.json` but required in the web `AuditReport` TS type, so a null/absent timestamp could reach `formatScanDate` and render "Jan 1, 1970".
   evidence: Pre-existing schema↔type drift surfaced while tracing verification; `formatScanDate(null)` coerces to epoch and `Number.isNaN` misses it. Belongs with the deferred `@darkhouse/contracts` type-generation/schema-validation item.
+
+## Deferred from: code review of spec-4-2 (2026-08-18, loop 1)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-include-broken-experience-proof-in-the-export.md`
+  summary: The proof ships as a `data:` URI inside the standalone HTML file, but the epic's actual outreach channel is email, where many clients strip `data:` URIs from attachments — the visual proof can silently fail to render in the target medium.
+  evidence: Blind-hunter finding. In-file data-URI works for browser-opening, not for every mail client's attachment rendering; the outreach medium is a future-channel concern, not a correctness gap in the standalone file itself.

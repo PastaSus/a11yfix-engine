@@ -1,4 +1,4 @@
-import type { Violation, ViolationNode } from "@/lib/scan";
+import type { Proof, Violation, ViolationNode } from "@/lib/scan";
 import type { AnalystImpact, ArchitectPatch, AuditReport } from "@/lib/translate/client";
 
 export function makeViolation(
@@ -54,6 +54,7 @@ export function makeReport(
   violations: Violation[],
   analystImpacts: AnalystImpact[] = [],
   architectPatches: ArchitectPatch[] = [],
+  proof: Proof | null = null,
 ): AuditReport {
   return {
     schemaVersion: "1.0.0",
@@ -64,5 +65,6 @@ export function makeReport(
     timestamp: "2026-08-15T12:30:00.000Z",
     analyst_impacts: analystImpacts,
     architect_patches: architectPatches,
+    proof,
   };
 }

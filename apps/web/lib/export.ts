@@ -41,15 +41,28 @@ function isoDate(timestamp: string): string {
   return Number.isNaN(date.getTime()) ? "unknown-date" : date.toISOString().slice(0, 10);
 }
 
-function hostnameSlug(url: string): string {
-  let hostname: string;
+const FALLBACK_HOSTNAME = "site";
+
+function parseHostname(url: string): string {
   try {
-    hostname = new URL(url).hostname;
+    return new URL(url).hostname;
   } catch {
     const match = /^https?:\/\/([^/?#]+)/.exec(url);
-    hostname = match ? match[1] : "site";
+    if (!match) return "";
+    // Mirror `new URL(...).hostname`: drop the port so the fallback branch
+    // produces the same host as the parsing branch on non-default ports.
+    return match[1].replace(/:\d+$/, "");
   }
+}
+
+function hostnameSlug(url: string): string {
+  const hostname = parseHostname(url) || FALLBACK_HOSTNAME;
   return hostname.replace(/\./g, "-");
+}
+
+export function hostnameOf(url: string): string {
+  const hostname = parseHostname(url);
+  return hostname === "" ? FALLBACK_HOSTNAME : hostname;
 }
 
 function escapeHtml(value: string): string {
@@ -150,6 +163,12 @@ dl.impact dt {
 }
 dl.impact dd { margin: 2px 0 0; }
 .mono, code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+.proof img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--outline);
+  display: block;
+}
 `;
 
 function renderMetrics(counts: TierCounts): string {
@@ -183,6 +202,38 @@ function renderImpacts(report: AuditReport): string {
       </li>`,
     )
     .join("\n");
+}
+
+const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+
+function isSafeProof(proof: AuditReport["proof"]): proof is {
+  mimeType: "image/png";
+  dataBase64: string;
+} {
+  return (
+    proof !== null &&
+    typeof proof === "object" &&
+    proof.mimeType === "image/png" &&
+    typeof proof.dataBase64 === "string" &&
+    proof.dataBase64.length >= 8 &&
+    BASE64_PATTERN.test(proof.dataBase64)
+  );
+}
+
+function renderProof(report: AuditReport): string {
+  const proof = report.proof;
+  // The web tier has no runtime schema gate, so only a structurally-valid
+  // proof (schema PINNED mimeType const + base64) may enter the src attribute.
+  // Anything else — tampered mimeType, non-base64 or short data — omits the
+  // section; a malformed proof can never corrupt the deliverable.
+  if (!isSafeProof(proof)) {
+    return "";
+  }
+  const altText = `Broken experience on ${hostnameOf(report.url)}`;
+  return `      <section class="card proof">
+        <h2>Broken experience</h2>
+        <img src="data:${proof.mimeType};base64,${proof.dataBase64}" alt="${escapeHtml(altText)}" />
+      </section>`;
 }
 
 export function renderReportHtml(report: AuditReport): string {
@@ -232,6 +283,7 @@ ${renderMetrics(counts)}
         <h2>Priority issues</h2>
         ${priorityBody}
       </section>
+${renderProof(report)}
     </main>
   </body>
 </html>`;

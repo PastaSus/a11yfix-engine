@@ -124,6 +124,7 @@ function buildAuditReport(scanResult: ScanResult, analystImpacts: AnalystImpact[
     timestamp: scanResult.timestamp,
     analyst_impacts: analystImpacts,
     architect_patches: [],
+    proof: scanResult.proof ?? null,
   };
 }
 

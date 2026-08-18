@@ -17,6 +17,11 @@ export type Violation = {
   nodes: ViolationNode[];
 };
 
+export type Proof = {
+  mimeType: string;
+  dataBase64: string;
+};
+
 export type ScanResult = {
   schemaVersion: string;
   scanId: string;
@@ -24,6 +29,7 @@ export type ScanResult = {
   violations: Violation[];
   vitals: Vitals;
   timestamp: string;
+  proof?: Proof | null;
 };
 
 export type SubmitScanError = {

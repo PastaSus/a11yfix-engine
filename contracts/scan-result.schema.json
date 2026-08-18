@@ -39,6 +39,21 @@
       "type": "string",
       "format": "date-time",
       "description": "ISO-8601 UTC scan completion time."
+    },
+    "proof": {
+      "type": ["object", "null"],
+      "description": "Optional base64-encoded PNG proof of a high-severity broken experience. Null when the page had no critical/serious violation or the capture failed best-effort; absent from pre-proof consumers still validates.",
+      "additionalProperties": false,
+      "required": ["mimeType", "dataBase64"],
+      "properties": {
+        "mimeType": {
+          "const": "image/png"
+        },
+        "dataBase64": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
     }
   },
   "definitions": {

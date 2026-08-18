@@ -119,6 +119,21 @@ describe("translateArchitect", () => {
     }
   });
 
+  it("preserves the proof block through the returned audit report", async () => {
+    const proof = { mimeType: "image/png", dataBase64: "iVBORw0KGgo=" };
+    const fake = makeFake(
+      vi.fn().mockResolvedValue(chatResponse(JSON.stringify([patch("color-contrast"), patch("button-name")]))),
+    );
+
+    const report = await translateArchitect({ ...REPORT, proof }, { fetch: fake.fetch });
+
+    expect(report.proof).toEqual(proof);
+    expect(report.architect_patches.map((p) => p.rationale.match(/button-name|color-contrast/g)?.[0])).toEqual([
+      "color-contrast",
+      "button-name",
+    ]);
+  });
+
   it("stamps status proposed from a constant and drops any provider-returned status", async () => {
     const fake = makeFake(
       vi

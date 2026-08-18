@@ -5,20 +5,26 @@ chromium being installed; pure logic runs without a browser."""
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 from jsonschema import Draft7Validator
+from playwright.async_api import Error as PlaywrightError
 
 from services.scanner.app.errors import HarvestError
 from services.scanner.app.harvest import (
     DOM_STABILITY_SAMPLES_REQUIRED,
+    MAX_PROOF_BYTES,
     acquire_scan_slot,
+    build_proof_block,
     build_scan_result,
+    capture_proof,
     dom_has_stabilized,
     extract_violations,
+    has_high_severity,
     load_axe_source,
     run_scan_with_timeout,
 )
@@ -72,7 +78,21 @@ def test_build_scan_result_envelope() -> None:
     assert envelope["url"] == "https://example.com"
     assert envelope["scanId"] == "01J00000000000000000000000"
     assert envelope["vitals"] == {"lcp": None, "inp": None, "cls": None}
+    assert envelope["proof"] is None
     assert envelope["timestamp"]
+
+
+def test_build_scan_result_carries_proof_block_when_present() -> None:
+    proof = build_proof_block(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)
+    envelope = build_scan_result(
+        "https://example.com",
+        "01J00000000000000000000000",
+        extract_violations({"violations": [SAMPLE_AXE_VIOLATION]}),
+        proof=proof,
+    )
+    assert envelope["proof"] == proof
+    assert envelope["proof"]["mimeType"] == "image/png"
+    assert base64.b64decode(envelope["proof"]["dataBase64"]) == b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 
 
 def test_build_scan_result_validates_against_schema() -> None:
@@ -84,6 +104,115 @@ def test_build_scan_result_validates_against_schema() -> None:
     )
     errors = sorted(validator.iter_errors(envelope), key=lambda e: list(e.path))
     assert not errors, [e.message for e in errors]
+
+
+def test_scan_result_with_populated_proof_validates_against_schema() -> None:
+    validator = Draft7Validator(_load_schema())
+    proof = build_proof_block(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)
+    envelope = build_scan_result(
+        "https://example.com",
+        "01J00000000000000000000000",
+        extract_violations({"violations": [SAMPLE_AXE_VIOLATION]}),
+        proof=proof,
+    )
+    errors = sorted(validator.iter_errors(envelope), key=lambda e: list(e.path))
+    assert not errors, [e.message for e in errors]
+
+
+def test_scan_result_rejects_malformed_proof_against_schema() -> None:
+    validator = Draft7Validator(_load_schema())
+    envelope = build_scan_result(
+        "https://example.com",
+        "01J00000000000000000000000",
+        extract_violations({"violations": [SAMPLE_AXE_VIOLATION]}),
+        proof={"mimeType": "image/png", "dataBase64": "short"},
+    )
+    errors = sorted(validator.iter_errors(envelope), key=lambda e: list(e.path))
+    assert any(e.path[0] == "proof" for e in errors), [e.message for e in errors]
+
+
+def test_has_high_severity_detects_critical_and_serious_impacts() -> None:
+    assert has_high_severity([{"impact": "critical"}])
+    assert has_high_severity([{"impact": "serious"}])
+    assert has_high_severity([{"impact": "moderate"}, {"impact": "critical"}])
+    assert not has_high_severity([])
+    assert not has_high_severity([{"impact": "moderate"}, {"impact": "minor"}])
+    assert not has_high_severity([{"impact": "unknown"}])
+
+
+def test_build_proof_block_round_trips_png_bytes() -> None:
+    png_bytes = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+    block = build_proof_block(png_bytes)
+    assert block["mimeType"] == "image/png"
+    assert base64.b64decode(block["dataBase64"]) == png_bytes
+    assert len(block["dataBase64"]) >= 8
+
+
+class _FakePage:
+    """Minimal stand-in for a Playwright page; only the screenshot seam."""
+
+    def __init__(self, result: bytes | Exception) -> None:
+        self._result = result
+        self.captured_full_page: bool | None = None
+
+    async def screenshot(self, full_page: bool = False) -> bytes:
+        self.captured_full_page = full_page
+        if isinstance(self._result, Exception):
+            raise self._result
+        return self._result
+
+
+async def test_capture_proof_skipped_without_high_severity() -> None:
+    page = _FakePage(b"\x89PNG" + b"\x00" * 8)
+    assert await capture_proof(page, [{"impact": "moderate"}]) is None
+    assert page.captured_full_page is None, "capture must be skipped entirely"
+
+
+async def test_capture_proof_happy_path_full_page() -> None:
+    png_bytes = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+    page = _FakePage(png_bytes)
+    block = await capture_proof(page, [{"impact": "serious"}, {"impact": "minor"}])
+    assert block == build_proof_block(png_bytes)
+    assert block is not None and block["mimeType"] == "image/png"
+    assert page.captured_full_page is True
+
+
+async def test_capture_proof_capture_failure_degrades_to_none() -> None:
+    page = _FakePage(PlaywrightError("screenshot blocked"))
+    assert await capture_proof(page, [{"impact": "critical"}]) is None
+
+
+async def test_capture_proof_accepts_only_playwright_errors_is_broadened() -> None:
+    """Any capture exception (not just Playwright ones) degrades to None."""
+    page = _FakePage(RuntimeError("unexpected backend failure"))
+    assert await capture_proof(page, [{"impact": "critical"}]) is None
+
+
+async def test_capture_proof_empty_bytes_degrades_to_none() -> None:
+    """Falsy screenshot output must not produce a schema-breaking empty base64."""
+    page = _FakePage(b"")
+    assert await capture_proof(page, [{"impact": "critical"}]) is None
+    assert page.captured_full_page is True, "capture happened, then was rejected"
+
+
+async def test_capture_proof_oversized_bytes_degrades_to_none() -> None:
+    """A screenshot beyond MAX_PROOF_BYTES must be dropped, never shipped."""
+    page = _FakePage(b"\x89PNG\r\n\x1a\n" + b"\x00" * (MAX_PROOF_BYTES + 1))
+    assert await capture_proof(page, [{"impact": "critical"}]) is None
+
+
+async def test_capture_proof_bounded_by_screenshot_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A screenshot that never returns is cancelled past the bound -> None."""
+
+    class _SlowPage:
+        async def screenshot(self, full_page: bool = False) -> bytes:
+            await asyncio.sleep(60)
+            return b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+
+    monkeypatch.setattr("services.scanner.app.harvest.SCREENSHOT_TIMEOUT_MS", 20)
+    assert await capture_proof(_SlowPage(), [{"impact": "critical"}]) is None
 
 
 def test_envelope_rejects_unknown_fields() -> None:

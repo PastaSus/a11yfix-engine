@@ -315,6 +315,53 @@ describe("ReportSurface", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:export-test");
   });
 
+  it("EXPORT_WITH_PROOF: a proof-bearing report downloads HTML containing the proof section, with no fetch", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const report = makeReport(
+      [makeViolation("critical", "v-c1")],
+      [
+        makeImpact("v-c1", {
+          business_problem: "Checkout forms lose entered data on a validation failure.",
+          affected_segment: "Shoppers on the product and checkout pages.",
+          wcag_consequence: "Fails WCAG 3.3.3 Error Suggestion; users may abandon the purchase.",
+          conversion_impact_estimate: "Plausibly blocks a share of checkout completions.",
+        }),
+      ],
+      [],
+      { mimeType: "image/png", dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAA==" },
+    );
+    const { createObjectURL } = stubDownload();
+    render(<ReportSurface report={report} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const html = await blob.text();
+    expect(html).toContain('<section class="card proof">');
+    expect(html).toContain('src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA=="');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("EXPORT_WITH_PROOF: a malformed proof (non-image/png) is omitted from the downloaded HTML", async () => {
+    const report = makeReport(
+      [makeViolation("critical", "v-c1")],
+      [makeImpact("v-c1")],
+      [],
+      { mimeType: "text/html", dataBase64: "SGVsbG8gd29ybGQ=" },
+    );
+    const { createObjectURL } = stubDownload();
+    render(<ReportSurface report={report} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export report" }));
+
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const html = await blob.text();
+    expect(html).not.toContain("card proof");
+    expect(html).not.toContain("data:text/html");
+    expect(html).toContain('<section class="card" aria-label="Priority issues">');
+  });
+
   it("EXPORT_SUCCESS: the button briefly shows the truncated filename, then resets", async () => {
     vi.useFakeTimers();
     try {
