@@ -1,4 +1,5 @@
 ---
+
 title: '4-2: Include broken-experience proof in the export'
 type: 'feature'
 created: '2026-08-18'
@@ -6,9 +7,11 @@ status: 'done'
 baseline_commit: 'dd0742f8f356b058ca6486a0278aaafb2386afca'
 review_loop_iteration: 1
 context:
-  - '_bmad-output/implementation-artifacts/epic-4-context.md'
-  - '_bmad-output/implementation-artifacts/spec-4-1-export-the-audit-report-as-a-diagnostic-report.md'
-  - '_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md'
+
+- '\_bmad-output/implementation-artifacts/epic-4-context.md'
+- '\_bmad-output/implementation-artifacts/spec-4-1-export-the-audit-report-as-a-diagnostic-report.md'
+- '\_bmad-output/planning-artifacts/ux-designs/ux-darkhouse-2026-08-12/EXPERIENCE.md'
+
 ---
 
 ## Intent
@@ -20,6 +23,7 @@ context:
 ## Boundaries & Constraints
 
 **Always:**
+
 - The scanner emits `proof` as `{ mimeType: "image/png", dataBase64: <base64> }` or `null` — capture happens in `run_scan` after axe/vitals are read, while the page is still open, full-page PNG. Schema declares `proof` as nullable object; a high-severity scan with a failed capture yields `null`, never a scan failure and never an exception.
 - The `proof` block flows ScanResult → `AuditReport` verbatim across the HTTP boundary and the `translateAnalyst` assembly; both `contracts/*.schema.json` files gain the same optional nullable `proof` property (the schemas are canonical — TS mirror types and the Python envelope are updated to match, never diverged).
 - The export embeds proof only when it is a non-empty object: `<section class="card proof">` with an `<img alt="Broken experience on {hostname}">` sourced from `data:{mimeType};base64,{dataBase64}`. A `null`/absent proof — zero high-severity violations, or failed capture — omits the section entirely; the export still succeeds (FR-12 AC 2).
@@ -28,9 +32,11 @@ context:
 - Bounded-resource invariants hold: full-page capture is a single bounded `page.screenshot` call inside the existing scan slot and wall-clock timeout — no extra browser, no retry loop.
 
 **Ask First:**
+
 - Whether full-page (default) vs cropped-to-first-node is the shipped proof format. The schema/export tolerate either; a change is scanner-only. (PRD OQ-3 flags this for UX validation.)
 
 **Never:**
+
 - No proof field that is `required` at the schema level — the field stays optional/nullable so zero-severity scans and pre-proof consumers keep validating.
 - No new npm or PyPI dependencies; no external screenshot/PDF service; no PDF; no auto-applied patches in the export (NFR-6 holds for files as for UI).
 - No Developer-View vocabulary in the proof section or captions.
@@ -38,14 +44,14 @@ context:
 
 ## I/O & Edge-Case Matrix
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|--------------|---------------------------|----------------|
-| HAPPY_PATH | Scan with ≥1 critical/serious violation; screenshot succeeds | ScanResult carries `proof: { mimeType: "image/png", dataBase64: "<base64>" }`; export renders a proof card with a decodable `<img>` data-URI and business-language alt text | N/A |
-| CAPTURE_FAILURE | High-severity violations but `page.screenshot` throws | `proof` is `null`; scan succeeds; export omits the proof section (data is still exported) | capture wrapped best-effort, never re-raised |
-| ALL_PASS | Zero high-severity violations | `proof` is `null`; export omits the proof section and still succeeds | N/A |
-| SCHEMA_GATE | A hypothetical envelope with a malformed `proof` (wrong shape) | Contract validator rejects it with the existing `schema_error` typed failure (not silent) | Draft7 `additionalProperties: false` + shape |
-| EXPORT_NO_PROOF | Any report whose `proof` is null/absent | `renderReportHtml` output contains no proof section; all 4-1 sections intact | N/A |
-| EXPORT_WITH_PROOF | Report with `proof` populated | Exported HTML contains `<section class="card proof">` with `<img src="data:image/png;base64,…">` and alt text; file opens standalone | N/A |
+| Scenario          | Input / State                                                  | Expected Output / Behavior                                                                                                                                                  | Error Handling                               |
+| ----------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| HAPPY_PATH        | Scan with ≥1 critical/serious violation; screenshot succeeds   | ScanResult carries `proof: { mimeType: "image/png", dataBase64: "<base64>" }`; export renders a proof card with a decodable `<img>` data-URI and business-language alt text | N/A                                          |
+| CAPTURE_FAILURE   | High-severity violations but `page.screenshot` throws          | `proof` is `null`; scan succeeds; export omits the proof section (data is still exported)                                                                                   | capture wrapped best-effort, never re-raised |
+| ALL_PASS          | Zero high-severity violations                                  | `proof` is `null`; export omits the proof section and still succeeds                                                                                                        | N/A                                          |
+| SCHEMA_GATE       | A hypothetical envelope with a malformed `proof` (wrong shape) | Contract validator rejects it with the existing `schema_error` typed failure (not silent)                                                                                   | Draft7 `additionalProperties: false` + shape |
+| EXPORT_NO_PROOF   | Any report whose `proof` is null/absent                        | `renderReportHtml` output contains no proof section; all 4-1 sections intact                                                                                                | N/A                                          |
+| EXPORT_WITH_PROOF | Report with `proof` populated                                  | Exported HTML contains `<section class="card proof">` with `<img src="data:image/png;base64,…">` and alt text; file opens standalone                                        | N/A                                          |
 
 ## Code Map
 
@@ -65,6 +71,7 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
+
 - [x] `contracts/scan-result.schema.json` and `contracts/audit-report.schema.json` -- add optional nullable `proof` property -- canonical contract, enables validator gate without breaking existing envelopes.
 - [x] `services/scanner/app/harvest.py` -- `build_scan_result` proof param, `has_high_severity`, `build_proof_block`, and best-effort `page.screenshot(full_page=True)` capture in `run_scan` -- FR-12 capture source, NFR-2 (best-effort, bounded).
 - [x] `apps/web/lib/scan.ts` + `apps/web/lib/translate/client.ts` + `apps/web/lib/translate/analyst.ts` -- `Proof` type, optional `proof` on `ScanResult`/`AuditReport`, threaded through `buildAuditReport` -- carries the field end-to-end without schema divergence.
@@ -73,6 +80,7 @@ context:
 - [x] `apps/web/tests/fixtures.ts`, `apps/web/tests/export.test.ts`, `apps/web/tests/report-surface.test.tsx` -- proof fixtures + export render/omit tests -- matrix rows EXPORT_WITH_PROOF/EXPORT_NO_PROOF/ALL_PASS.
 
 **Acceptance Criteria:**
+
 - Given a scan with at least one critical or serious violation, when the scan completes, then `ScanResult.proof` is a non-empty `{ mimeType: "image/png", dataBase64 }` block that validates against the canonical schema, and a capture failure never fails the scan (proof becomes `null`, scan succeeds).
 - Given such a report, when it is exported, then the exported HTML contains a proof section with an `<img>` sourced from `data:image/png;base64,…`, business-language alt text, and no Developer/rule-ID vocabulary; the file opens standalone with the image visible.
 - Given a scan with zero high-severity violations (or a failed capture), when it is exported, then the proof section is omitted and the export still succeeds with all 4-1 content intact — no placeholder and no failure.
@@ -114,12 +122,14 @@ Matrix Test Audit follow-up (step-03 verification): extracted the capture seam i
 ## Verification
 
 **Commands:**
+
 - `uv run python -m pytest services/scanner/tests/ -v` -- expected: new proof tests green; all existing scanner tests green against the updated schema.
 - `pnpm --filter @darkhouse/web test` -- expected: new export/report-surface proof tests green alongside the existing suite.
 - `pnpm --filter @darkhouse/web lint` -- expected: clean.
 - `pnpm --filter @darkhouse/web build` -- expected: succeeds under Next 16 Turbopack.
 
 **Manual checks (if no CLI):**
+
 - Run a scan of a page with a known contrast or alt-text failure against a live scanner, export the report, and confirm the downloaded HTML shows the broken-experience screenshot inline with all styling and no console errors.
 
 ## Suggested Review Order
