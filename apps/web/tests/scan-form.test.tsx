@@ -36,7 +36,7 @@ const REPORT: AuditReport = makeReport(
 );
 
 const EMPTY_STATE_COPY = "Run your first audit. Darkhouse will check it for accessibility and core web vitals, then walk you through the fixes.";
-const PAUSED_COPY = "Translation is waiting on a free-tier limit. Retrying.";
+const PAUSED_COPY = "The service hit a temporary limit. Wait a moment, then retry.";
 const UNREACHABLE_HINT = "We couldn't reach that site. It may be down, or the network is slow.";
 
 afterEach(() => {

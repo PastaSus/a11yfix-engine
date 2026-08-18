@@ -11,7 +11,7 @@ import { validateScanUrl } from "@/lib/validate-scan-url";
 import type { AuditReport } from "@/lib/translate/client";
 
 const EMPTY_STATE_COPY = "Run your first audit. Darkhouse will check it for accessibility and core web vitals, then walk you through the fixes.";
-const PAUSED_COPY = "Translation is waiting on a free-tier limit. Retrying.";
+const PAUSED_COPY = "The service hit a temporary limit. Wait a moment, then retry.";
 const GENERIC_FAILURE_HINT = "Something went wrong while scanning. Try again in a moment.";
 
 const STAGE_ANNOUNCEMENT: Record<StageName, string> = {

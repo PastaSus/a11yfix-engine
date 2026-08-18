@@ -211,11 +211,56 @@ describe("translateAnalyst", () => {
   it("rejects with a rate_limited translate error on HTTP 429", async () => {
     const fake = makeFake(vi.fn().mockResolvedValue(new Response("{}", { status: 429 })));
 
-    await expect(translateAnalyst(SCAN, { fetch: fake.fetch })).rejects.toMatchObject({
+    await expect(translateAnalyst(SCAN, { fetch: fake.fetch, maxRetries: 0 })).rejects.toMatchObject({
       code: "rate_limited",
       stage: "translate",
     });
-    await expect(translateAnalyst(SCAN, { fetch: fake.fetch })).rejects.toBeInstanceOf(TranslateError);
+    await expect(translateAnalyst(SCAN, { fetch: fake.fetch, maxRetries: 0 })).rejects.toBeInstanceOf(
+      TranslateError,
+    );
+  });
+
+  it("auto-retries a transient 429 and succeeds on a later attempt", async () => {
+    const fake = makeFake(
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response("{}", { status: 429 }))
+        .mockResolvedValueOnce(chatResponse(JSON.stringify([block("button-name"), block("color-contrast")]))),
+    );
+
+    const report = await translateAnalyst(SCAN, { fetch: fake.fetch, sleep: async () => {} });
+
+    expect(report.analyst_impacts.map((imp) => imp.violation_id)).toEqual(["color-contrast", "button-name"]);
+    expect(fake.calls()).toHaveLength(2);
+  });
+
+  it("backs off by retry-after seconds when a 429 carries the header", async () => {
+    const sleeps: number[] = [];
+    const fake = makeFake(
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response("{}", { status: 429, headers: { "retry-after": "3" } }))
+        .mockResolvedValueOnce(chatResponse(JSON.stringify([block("button-name"), block("color-contrast")]))),
+    );
+
+    await translateAnalyst(SCAN, {
+      fetch: fake.fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    expect(sleeps).toEqual([3000]);
+    expect(fake.calls()).toHaveLength(2);
+  });
+
+  it("exhausts bounded retries before reporting rate_limited", async () => {
+    const fake = makeFake(vi.fn().mockResolvedValue(new Response("{}", { status: 429 })));
+
+    await expect(
+      translateAnalyst(SCAN, { fetch: fake.fetch, maxRetries: 1, retryBaseDelayMs: 0, sleep: async () => {} }),
+    ).rejects.toMatchObject({ code: "rate_limited" });
+    expect(fake.calls()).toHaveLength(2);
   });
 
   it("rejects with a translate error when the provider is unreachable", async () => {

@@ -4,6 +4,7 @@ import {
   chat,
   extractJsonArray,
   readAiConfig,
+  resolveRetryConfig,
 } from "./client";
 import type {
   AnalystImpact,
@@ -171,7 +172,13 @@ export async function translateArchitect(
         ...impact,
         violation: violationById.get(impact.violation_id)!,
       }));
-      const content = await chat(config, buildArchitectPrompt(auditReport, contexts), MAX_PATCH_TOKENS, fetchLike);
+      const content = await chat(
+        config,
+        buildArchitectPrompt(auditReport, contexts),
+        MAX_PATCH_TOKENS,
+        fetchLike,
+        resolveRetryConfig(deps),
+      );
       patches = parsePatches(content, impacts);
     }
 
