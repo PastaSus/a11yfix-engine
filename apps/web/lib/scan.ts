@@ -46,7 +46,7 @@ function isNullableNumber(value: unknown): value is number | null {
   return typeof value === "number" || value === null;
 }
 
-function isScanResult(data: unknown): data is ScanResult {
+export function isScanResult(data: unknown): data is ScanResult {
   if (typeof data !== "object" || data === null) return false;
   const candidate = data as Record<string, unknown>;
   const vitals = candidate.vitals as Record<string, unknown> | null | undefined;
