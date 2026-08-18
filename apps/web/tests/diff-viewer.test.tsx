@@ -35,7 +35,9 @@ const PATCH: ArchitectPatch = {
 describe("DiffViewer", () => {
   it("renders the proposed badge and a review-only surface with a copy action", () => {
     const { container } = render(<DiffViewer patch={PATCH} />);
-    expect(screen.getByText("Proposed — not applied.")).not.toBeNull();
+    expect(screen.getByText("Proposed, not applied.")).not.toBeNull();
+    // The badge reads the code-surface warning tokens, never a raw Tailwind palette class.
+    expect(screen.getByText("Proposed, not applied.").className).toContain("text-code-warn-fg");
     expect(screen.getByText("Proposed changes")).not.toBeNull();
     expect(container.querySelector("[data-surface='dark']")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Copy diff" })).not.toBeNull();
@@ -158,7 +160,7 @@ describe("DiffViewer", () => {
   it("shows an empty-diff note but keeps the badge, title, and copy button", () => {
     const { container } = render(<DiffViewer patch={{ ...PATCH, diff: "" }} />);
     expect(screen.getByText("No diff to render.")).not.toBeNull();
-    expect(screen.getByText("Proposed — not applied.")).not.toBeNull();
+    expect(screen.getByText("Proposed, not applied.")).not.toBeNull();
     expect(screen.getByText("Proposed changes")).not.toBeNull();
     expect(container.querySelectorAll("[data-line-type]")).toHaveLength(0);
     expect(screen.getByRole("button", { name: "Copy diff" })).not.toBeNull();

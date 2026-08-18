@@ -59,7 +59,7 @@ export function ClientView({ report, onViewFix }: ClientViewProps) {
         )}
         {hasCritical && !hasImpacts && (
           <p className="mt-3 text-sm text-on-surface-variant">
-            Impact analysis unavailable — see the Developer view.
+            Impact analysis unavailable. Check the Developer view for the full report.
           </p>
         )}
         {hasImpacts && (
@@ -85,7 +85,7 @@ export function ClientView({ report, onViewFix }: ClientViewProps) {
                   type="button"
                   aria-label={`View fix: ${impact.business_problem}`}
                   onClick={() => onViewFix(impact.violation_id)}
-                  className="mt-3 h-11 rounded-md border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="mt-3 h-11 rounded-sm border border-outline px-4 text-sm font-medium text-on-surface hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   View fix
                 </button>

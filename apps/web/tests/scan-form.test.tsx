@@ -35,9 +35,9 @@ const REPORT: AuditReport = makeReport(
   [makePatch(), makePatch()],
 );
 
-const EMPTY_STATE_COPY = "No scans yet — paste a URL to run your first audit.";
-const PAUSED_COPY = "Translation is waiting on a free-tier limit — retrying.";
-const UNREACHABLE_HINT = "We couldn't reach that site — it may be down, or the network is slow.";
+const EMPTY_STATE_COPY = "Run your first audit. Darkhouse will check it for accessibility and core web vitals, then walk you through the fixes.";
+const PAUSED_COPY = "Translation is waiting on a free-tier limit. Retrying.";
+const UNREACHABLE_HINT = "We couldn't reach that site. It may be down, or the network is slow.";
 
 afterEach(() => {
   cleanup();

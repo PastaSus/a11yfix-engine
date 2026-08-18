@@ -134,7 +134,7 @@ describe("ClientView", () => {
     expect(
       screen.queryByText("No critical violations detected. Check the Developer view for the full report."),
     ).toBeNull();
-    expect(screen.getByText("Impact analysis unavailable — see the Developer view.")).not.toBeNull();
+    expect(screen.getByText("Impact analysis unavailable. Check the Developer view for the full report.")).not.toBeNull();
     expect(screen.queryByRole("list")).toBeNull();
   });
 

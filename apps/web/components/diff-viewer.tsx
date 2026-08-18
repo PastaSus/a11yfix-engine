@@ -41,9 +41,9 @@ const GUTTER: Record<DiffLineKind, string> = {
 };
 
 const GUTTER_COLOR: Record<DiffLineKind, string> = {
-  add: "text-green-400",
-  del: "text-red-400",
-  context: "text-slate-400",
+  add: "text-code-add",
+  del: "text-code-del",
+  context: "text-code-muted",
 };
 
 export function DiffViewer({ patch }: { patch: ArchitectPatch }) {
@@ -87,25 +87,25 @@ export function DiffViewer({ patch }: { patch: ArchitectPatch }) {
     <section
       data-surface="dark"
       aria-labelledby={headingId}
-      className="w-full rounded-lg border border-white/10 bg-[#0f172a] font-mono text-sm text-slate-300"
+      className="w-full rounded-lg border border-code-border bg-code-bg font-mono text-sm text-code-fg"
     >
-      <header className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3">
-        <h3 id={headingId} className="text-sm font-semibold text-slate-200">
+      <header className="flex flex-wrap items-center gap-3 border-b border-code-border px-4 py-3">
+        <h3 id={headingId} className="text-sm font-semibold text-code-fg">
           Proposed changes
         </h3>
-        <span className="rounded-full border border-amber-300/40 bg-amber-400/10 px-2.5 py-0.5 text-xs font-medium text-amber-300">
-          Proposed — not applied.
+        <span className="rounded-full border border-code-warn-border bg-code-warn-bg px-2.5 py-0.5 text-xs font-medium text-code-warn-fg">
+          Proposed, not applied.
         </span>
         <div className="ml-auto flex items-center gap-2">
           {copied && (
-            <span role="status" aria-live="polite" className="text-xs text-emerald-400">
+            <span role="status" aria-live="polite" className="text-xs text-code-add">
               Copied
             </span>
           )}
           <button
             type="button"
             onClick={handleCopy}
-            className="h-11 rounded-md border border-white/15 px-4 text-sm font-medium text-slate-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            className="h-11 rounded-sm border border-code-border px-4 text-sm font-medium text-code-fg hover:bg-code-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-code-add"
           >
             Copy diff
           </button>
@@ -113,7 +113,7 @@ export function DiffViewer({ patch }: { patch: ArchitectPatch }) {
       </header>
 
       {lines.length === 0 ? (
-        <p className="px-4 py-6 text-slate-400">No diff to render.</p>
+        <p className="px-4 py-6 text-code-muted">No diff to render.</p>
       ) : (
         <div>
           {lines.map((line, index) => {
@@ -125,7 +125,7 @@ export function DiffViewer({ patch }: { patch: ArchitectPatch }) {
                 className="grid grid-cols-[2ch_4ch_1fr] items-start gap-x-2 px-4 py-0.5"
               >
                 <span className={color}>{GUTTER[line.kind]}</span>
-                <span aria-hidden="true" className="select-none text-right text-slate-600">
+                <span aria-hidden="true" className="select-none text-right text-code-muted">
                   {index + 1}
                 </span>
                 <span className={`whitespace-pre-wrap min-w-0 ${color}`}>{line.text}</span>
