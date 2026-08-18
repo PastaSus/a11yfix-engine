@@ -1,0 +1,16 @@
+.git
+.gitignore
+.agents
+.vercel
+_bmad-output
+docs
+node_modules
+apps
+.benchmarks
+.env
+.env.*
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+*.log

@@ -38,6 +38,11 @@ SCAN_SLOT_TIMEOUT_MS = 30_000
 SCREENSHOT_TIMEOUT_MS = 20_000
 MAX_PROOF_BYTES = 2_000_000
 
+# Headless Chromium in containerized runs buffers and sandboxes differently than
+# a local desktop: --no-sandbox is required when running as root in Docker, and
+# --disable-dev-shm-usage avoids dev-shm exhaustion in small-memory containers.
+CHROMIUM_LAUNCH_ARGS = ["--no-sandbox", "--disable-dev-shm-usage"]
+
 VITALS_INIT_SCRIPT = r"""
 (() => {
   const vitals = window.__darkhouseVitals = { lcp: null, cls: null };
@@ -308,7 +313,7 @@ async def run_scan(url: str, scan_id: str) -> dict[str, Any]:
     try:
         try:
             async with async_playwright() as p:
-                browser = await p.chromium.launch()
+                browser = await p.chromium.launch(args=CHROMIUM_LAUNCH_ARGS)
                 try:
                     page = await browser.new_page()
                     await page.add_init_script(VITALS_INIT_SCRIPT)
